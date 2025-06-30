@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+clap = { version = "4.5.40", features = ["derive"] }
 serde = { version = "1.0.219", features = ["derive"] }
 
 [dev-dependencies]
@@ -11,4 +12,3 @@ insta = { version = "1.43.1", features = ["yaml"] }
 
 [profile.dev.package]
 insta.opt-level = 3
-similar.opt-level = 3
