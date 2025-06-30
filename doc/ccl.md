@@ -2,6 +2,11 @@
 
 The parser parses the string into a list of key-value pairs, and then parses the values recursively.
 
+Formal definition:
+- key: Any sequence of characters without `=` (leading and trailing whitespace characters removed)
+- value: Any sequence of characters before the next key-value pair (leading spaces and trailing whitespace characters removed)
+
+
 
 model.mli
 ```ocaml
