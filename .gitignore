@@ -1,6 +1,7 @@
 /target
 
-# VSCode
+# IDE
 .history/
+.cursor/
 
 *local.*
