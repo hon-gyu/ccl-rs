@@ -1,200 +1,133 @@
 use std::collections::HashMap;
 
-#[derive(Debug)]
-struct KeyMap<V>(HashMap<String, V>);
+#[derive(Debug, Clone)]
+enum ValueEntry {
+    String(String),
+    Nested(Ccl),
+}
 
-impl<V> KeyMap<V> {
-    fn init_singleton(key: String, value: V) -> Self {
-        let mut map = HashMap::new();
-        map.insert(key, value);
-        KeyMap(map)
+#[derive(Debug, Clone)]
+struct Ccl {
+    map: HashMap<String, Vec<ValueEntry>>,
+}
+
+impl Ccl {
+    fn empty() -> Self {
+        Self {
+            map: HashMap::new(),
+        }
     }
 
-    fn init_nested(
-        key: String,
-        values: Vec<KeyMap<V>>,
-    ) -> KeyMap<Vec<KeyMap<V>>> {
+    fn key_val(key: String, value: String) -> Self {
         let mut map = HashMap::new();
-        map.insert(key, values);
-        KeyMap(map)
+        map.insert(key, vec![ValueEntry::String(value)]);
+        Self { map }
     }
 
-    fn merge(lst: Vec<KeyMap<V>>) -> Self {
-        todo!()
+    fn merge(self, other: Self) -> Self {
+        let mut map = self.map;
+        for (key, values) in other.map {
+            if let Some(existing) = map.get_mut(&key) {
+                existing.extend(values);
+            } else {
+                map.insert(key, values);
+            }
+        }
+        Self { map }
     }
 
     fn pretty(&self) -> String {
-        todo!()
+        format!("{:#?}", self.map)
     }
+
+    // // Create a CCL with key k mapping to an empty CCL
+    // fn key(key: String) -> Self {
+    //     let mut map = HashMap::new();
+    //     map.insert(key, vec![ValueEntry::Nested(Ccl::empty())]);
+    //     Self { map }
+    // }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn get_multiple_key_map() -> Vec<KeyMap<String>> {
-        let mut key_maps = Vec::new();
-        for i in (0..10).step_by(2) {
-            for j in (1..11).step_by(2) {
-                let elem = KeyMap::init_singleton(
-                    format!("t{}", i),
-                    format!("t{}", j),
-                );
-                key_maps.push(elem);
-            }
+    #[test]
+    fn test_empty() {
+        let ccl = Ccl::empty();
+        insta::assert_snapshot!(ccl.pretty(), @"{}");
+    }
+
+    #[test]
+    fn test_key_val() {
+        let ccl = Ccl::key_val("tt".to_string(), "ttt".to_string());
+        insta::assert_snapshot!(ccl.pretty(), @r#"
+        {
+            "tt": [
+                String(
+                    "ttt",
+                ),
+            ],
         }
-        key_maps
+        "#)
     }
 
     #[test]
-    fn test_init_singleton() {
-        let key_map =
-            KeyMap::init_singleton("t1".to_string(), "t2".to_string());
-        insta::assert_debug_snapshot!(key_map, @r#"
-        KeyMap(
-            {
-                "t1": "t2",
-            },
-        )
-        "#);
+    fn test_merge_same_key() {
+        let ccl1 = Ccl::key_val("tt".to_string(), "ttt".to_string());
+        let ccl2 = Ccl::key_val("tt".to_string(), "ttt2".to_string());
+        let ccl = ccl1.merge(ccl2);
+        insta::assert_snapshot!(ccl.pretty(), @r#"
+        {
+            "tt": [
+                String(
+                    "ttt",
+                ),
+                String(
+                    "ttt2",
+                ),
+            ],
+        }
+        "#)
     }
 
     #[test]
-    fn test_init_nested() {
-        let key_maps = get_multiple_key_map();
-        let key_map = KeyMap::init_nested("k".to_string(), key_maps);
-        insta::assert_debug_snapshot!(key_map, @r#"
-        KeyMap(
-            {
-                "k": [
-                    KeyMap(
-                        {
-                            "t0": "t1",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t0": "t3",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t0": "t5",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t0": "t7",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t0": "t9",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t2": "t1",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t2": "t3",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t2": "t5",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t2": "t7",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t2": "t9",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t4": "t1",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t4": "t3",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t4": "t5",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t4": "t7",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t4": "t9",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t6": "t1",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t6": "t3",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t6": "t5",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t6": "t7",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t6": "t9",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t8": "t1",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t8": "t3",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t8": "t5",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t8": "t7",
-                        },
-                    ),
-                    KeyMap(
-                        {
-                            "t8": "t9",
-                        },
-                    ),
-                ],
-            },
-        )
-        "#);
+    fn test_merge_different_key() {
+        let ccl1 = Ccl::key_val("tt".to_string(), "ttt".to_string());
+        let ccl2 = Ccl::key_val("tt2".to_string(), "ttt2".to_string());
+        let ccl = ccl1.merge(ccl2);
+        insta::assert_snapshot!(ccl.pretty(), @r#"
+        {
+            "tt": [
+                String(
+                    "ttt",
+                ),
+            ],
+            "tt2": [
+                String(
+                    "ttt2",
+                ),
+            ],
+        }
+        "#)
+    }
+
+    #[test]
+    fn test_merge_same_key_same_value() {
+        let ccl1 = Ccl::key_val("tt".to_string(), "ttt".to_string());
+        let ccl2 = Ccl::key_val("tt".to_string(), "ttt".to_string());
+        let ccl = ccl1.merge(ccl2);
+        insta::assert_snapshot!(ccl.pretty(), @r#"
+        {
+            "tt": [
+                String(
+                    "ttt",
+                ),
+                String(
+                    "ttt",
+                ),
+            ],
+        }
+        "#)
     }
 }

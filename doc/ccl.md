@@ -79,3 +79,8 @@ prefix of spaces and considers all keys with this prefix (or less) to be
 top-level. *)
 val parse_value : string -> (key_val list, [> error ]) result
 ```
+
+Nested values
+To handle nested values easily, the CCL parser implementation remembers the number of spaces N in front of the first key and follows two simple rules:
+- Lines with ⩽ N leading spaces start new key-value entry.
+- Lines with > N leading spaces continue the previous value.

@@ -1,0 +1,3 @@
+[submodule "vendor/ccl"]
+	path = vendor/ccl
+	url = git@github.com:chshersh/ccl
