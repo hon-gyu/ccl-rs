@@ -2,8 +2,8 @@ use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct KeyVal {
-    key: String,
-    value: String,
+    pub key: String,
+    pub value: String,
 }
 
 impl KeyVal {
@@ -31,7 +31,7 @@ impl KeyVal {
     }
 
     // Parse one level
-    fn parse_one_level(data: &str) -> Result<Vec<Self>, String> {
+    pub fn parse_one_level(data: &str) -> Result<Vec<Self>, String> {
         let mut key_vals = Vec::new();
 
         let lines = data.trim().lines().collect::<Vec<&str>>();
@@ -63,11 +63,6 @@ impl KeyVal {
 
         Ok(key_vals)
     }
-
-    // Parse nested
-    pub fn parse(data: &str) -> Vec<Self> {
-        todo!()
-    }
 }
 
 impl Display for KeyVal {
@@ -76,10 +71,66 @@ impl Display for KeyVal {
     }
 }
 
+enum ValueEntry {
+    String(String),
+    Nested(Ccl),
+}
+
+struct Ccl {
+    key: String,
+    value: Vec<ValueEntry>,
+}
+
+impl Ccl {
+    fn parse(data: &str) -> Result<Vec<Self>, String> {
+        let key_vals = KeyVal::parse_one_level(data)?;
+
+        let mut ccls = Vec::new();
+        for key_val in key_vals {
+            let key = key_val.key;
+            let value = key_val.value;
+
+            let parsed_ccl = Self::parse(&value);
+            match parsed_ccl {
+                Err(e) => {
+                    let ccl = Ccl {
+                        key,
+                        value: vec![ValueEntry::String(value)],
+                    };
+                }
+                Ok(ccls) => {
+                    // ?
+                    todo!()
+                }
+            }
+            ccls.push(ccl);
+        }
+        Ok(ccls)
+    }
+}
+
+// // Parse nested
+// pub fn parse(data: &str) -> Result<Vec<Self>, String> {
+//     // Learning note:
+//     // extract or early return the error
+//     let mut key_vals = Self::parse_one_level(data)?;
+
+//     for key_val in key_vals.iter_mut() {
+//         let val_parsed = Self::parse(&key_val.value);
+//         match val_parsed {
+//             Err(e) => {
+//                 continue;
+//             }
+//             Ok(val_parsed) => {
+//                 key_val.value = val_parsed;
+//             }
+//         }
+//     }
+//     Ok(key_vals)
+// }
+
 #[cfg(test)]
 mod tests {
-    use std::io::Stderr;
-
     use super::*;
 
     fn data() -> String {

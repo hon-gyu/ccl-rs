@@ -1,3 +1,4 @@
+use crate::parser::KeyVal;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 
