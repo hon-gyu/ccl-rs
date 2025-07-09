@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -36,8 +37,11 @@ impl Ccl {
         Self { map }
     }
 
+    // Pretty print the map, determinstically
     fn pretty(&self) -> String {
-        format!("{:#?}", self.map)
+        // _ is asking rust to infer the type of the key and value
+        let sorted_map: BTreeMap<_, _> = self.map.iter().collect();
+        format!("{:#?}", sorted_map)
     }
 
     // // Create a CCL with key k mapping to an empty CCL
