@@ -1,37 +1,78 @@
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Eq)]
-struct KeyVal {
+pub struct KeyVal {
     key: String,
     value: String,
 }
 
 impl KeyVal {
-    fn new(key: String, value: String) -> Self {
+    pub fn new(key: String, value: String) -> Self {
         Self {
             key: key.trim().to_string(),
             value: value.trim().to_string(),
         }
     }
 
-    fn parse(data: &str) -> Vec<Self> {
+    fn dedent<'a>(lines: &[&'a str]) -> Vec<&'a str> {
+        let min_indent = lines
+            .iter()
+            .map(|line| line.len() - line.trim_start().len())
+            .min()
+            .unwrap();
+
+        // Learning note:
+        // Equivalent to `&(*line)[min_indent..]`
+        // indexing is method calling, so it will do derefer coercion
+        // indexing a slice gives a slice
+        // line[min_indent..] is of type str
+        // &line[min_indent..] is of type &str
+        lines.iter().map(|line| &line[min_indent..]).collect()
+    }
+
+    // Parse one level
+    fn parse_one_level(data: &str) -> Result<Vec<Self>, String> {
         let mut key_vals = Vec::new();
 
-        let lines = data.trim().lines();
+        let lines = data.trim().lines().collect::<Vec<&str>>();
 
-        for line in lines {
-            let (key, value) = line.split_once("=").unwrap();
-
-            key_vals.push(Self::new(key.to_string(), value.to_string()))
+        let len = lines.len();
+        if len == 0 {
+            return Ok(key_vals);
         }
 
-        key_vals
+        for (i, line) in lines.iter().enumerate() {
+            let indentation = line.len() - line.trim_start().len();
+
+            if i == 0 || indentation == 0 {
+                let Some((curr_key, curr_value)) = line.split_once("=")
+                else {
+                    return Err(format!("Invalid line: {}", line));
+                };
+
+                key_vals.push(Self::new(
+                    curr_key.to_string(),
+                    curr_value.to_string(),
+                ));
+                continue;
+            } else {
+                let last_key_val = key_vals.last_mut().unwrap();
+                last_key_val.value.push_str(&format!("\n{}", line));
+            }
+        }
+
+        Ok(key_vals)
+    }
+
+    // Parse nested
+    pub fn parse(data: &str) -> Vec<Self> {
+        todo!()
     }
 }
 
 impl Display for KeyVal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} = {}", self.key, self.value)
+        write!(f, "{} = {:?}", self.key, self.value)
     }
 }
 
@@ -43,10 +84,17 @@ mod tests {
 
     fn data() -> String {
         r#"
-key1 = value1
-key2 = value2
-    key3 = value3
-key4 = value4
+a = b
+b =
+  c = d
+  d =
+    e = f
+    f = g
+  g = h
+h = i
+i = j
+j = k
+  k = l
 "#
         .to_string()
     }
@@ -54,18 +102,19 @@ key4 = value4
     #[test]
     fn test_parse() {
         let data = data();
-        let key_vals = KeyVal::parse(&data);
+        let key_vals = KeyVal::parse_one_level(&data).unwrap();
         let parsed_str = key_vals
             .iter()
             .map(|key_val| key_val.to_string())
             .collect::<Vec<String>>()
             .join("\n");
 
-        insta::assert_snapshot!(parsed_str, @r"
-        key1 = value1
-        key2 = value2
-        key3 = value3
-        key4 = value4
-        ");
+        insta::assert_snapshot!(parsed_str, @r#"
+        a = "b"
+        b = "\n  c = d\n  d =\n    e = f\n    f = g\n  g = h"
+        h = "i"
+        i = "j"
+        j = "k\n  k = l"
+        "#);
     }
 }
