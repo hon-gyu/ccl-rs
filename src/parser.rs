@@ -71,11 +71,13 @@ impl Display for KeyVal {
     }
 }
 
+#[derive(Clone)]
 enum ValueEntry {
     String(String),
     Nested(Ccl),
 }
 
+#[derive(Clone)]
 struct Ccl {
     key: String,
     value: Vec<ValueEntry>,
@@ -93,7 +95,16 @@ fn indent(s: &str, indent: usize) -> String {
 impl Display for Ccl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = String::new();
-        s.push_str(format!("{} = \n", self.key).as_str());
+        s.push_str(format!("{} = ", self.key).as_str());
+
+        if self.value.len() == 1 {
+            if let ValueEntry::String(string) = self.value.first().unwrap() {
+                s.push_str(string);
+                return write!(f, "{}", s);
+            }
+        }
+
+        s.push_str("\n");
 
         for value_entry in self.value.iter() {
             match value_entry {
@@ -116,6 +127,7 @@ impl Display for Ccl {
 
 impl Ccl {
     fn init_string(key: String, value: String) -> Self {
+        // TODO: should we check if the value can be parsed as a CCL?
         Self {
             key: key,
             value: vec![ValueEntry::String(value)],
@@ -206,10 +218,7 @@ j = k
     #[test]
     fn test_ccl_init_string() {
         let ccl = Ccl::init_string("a".to_string(), "b".to_string());
-        insta::assert_snapshot!(ccl, @r"
-        a = 
-          b
-        ")
+        insta::assert_snapshot!(ccl, @"a = b")
     }
 
     #[test]
@@ -220,16 +229,31 @@ j = k
         let ccl = Ccl::init_nested("root".to_string(), ccls);
         insta::assert_snapshot!(ccl, @r"
         root = 
-          a1 = 
-            b1
-          a2 = 
-            b2
-          a3 = 
-            b3
-          a4 = 
-            b4
-          a5 = 
-            b5
-        ")
+          a1 = b1
+          a2 = b2
+          a3 = b3
+          a4 = b4
+          a5 = b5
+        ");
+
+        let ccl2 = Ccl::init_nested(
+            "root's root".to_string(),
+            vec![ccl.clone(), ccl.clone()],
+        );
+        insta::assert_snapshot!(ccl2, @r"
+        root's root = 
+          root = 
+            a1 = b1
+            a2 = b2
+            a3 = b3
+            a4 = b4
+            a5 = b5
+          root = 
+            a1 = b1
+            a2 = b2
+            a3 = b3
+            a4 = b4
+            a5 = b5
+        ");
     }
 }
