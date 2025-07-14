@@ -81,6 +81,39 @@ struct Ccl {
     value: Vec<ValueEntry>,
 }
 
+/// Indent a string by a given number of spaces for each line
+fn indent(s: &str, indent: usize) -> String {
+    let indent_str = " ".repeat(indent);
+    s.lines()
+        .map(|line| format!("{}{}", indent_str, line))
+        .collect::<Vec<String>>()
+        .join("\n")
+}
+
+impl Display for Ccl {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = String::new();
+        s.push_str(format!("{} = \n", self.key).as_str());
+
+        for value_entry in self.value.iter() {
+            match value_entry {
+                ValueEntry::String(string) => {
+                    s.push_str(indent(string, 2).as_str());
+                    s.push_str("\n");
+                }
+                ValueEntry::Nested(ccl) => {
+                    s.push_str(
+                        indent(format!("{}", ccl).as_str(), 2).as_str(),
+                    );
+                    s.push_str("\n");
+                }
+            }
+        }
+
+        write!(f, "{}", s)
+    }
+}
+
 impl Ccl {
     fn init_string(key: String, value: String) -> Self {
         Self {
@@ -130,26 +163,6 @@ impl Ccl {
     }
 }
 
-// // Parse nested
-// pub fn parse(data: &str) -> Result<Vec<Self>, String> {
-//     // Learning note:
-//     // extract or early return the error
-//     let mut key_vals = Self::parse_one_level(data)?;
-
-//     for key_val in key_vals.iter_mut() {
-//         let val_parsed = Self::parse(&key_val.value);
-//         match val_parsed {
-//             Err(e) => {
-//                 continue;
-//             }
-//             Ok(val_parsed) => {
-//                 key_val.value = val_parsed;
-//             }
-//         }
-//     }
-//     Ok(key_vals)
-// }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -188,5 +201,35 @@ j = k
         i = "j"
         j = "k\n  k = l"
         "#);
+    }
+
+    #[test]
+    fn test_ccl_init_string() {
+        let ccl = Ccl::init_string("a".to_string(), "b".to_string());
+        insta::assert_snapshot!(ccl, @r"
+        a = 
+          b
+        ")
+    }
+
+    #[test]
+    fn test_ccl_init_nested() {
+        let ccls = (1..6)
+            .map(|i| Ccl::init_string(format!("a{}", i), format!("b{}", i)))
+            .collect::<Vec<Ccl>>();
+        let ccl = Ccl::init_nested("root".to_string(), ccls);
+        insta::assert_snapshot!(ccl, @r"
+        root = 
+          a1 = 
+            b1
+          a2 = 
+            b2
+          a3 = 
+            b3
+          a4 = 
+            b4
+          a5 = 
+            b5
+        ")
     }
 }
