@@ -30,7 +30,7 @@ impl KeyVal {
         lines.iter().map(|line| &line[min_indent..]).collect()
     }
 
-    // Parse one level
+    /// Parse a string into a vector of KeyVals by indentation
     pub fn parse_one_level(data: &str) -> Result<Vec<Self>, String> {
         let mut key_vals = Vec::new();
 
@@ -82,6 +82,29 @@ struct Ccl {
 }
 
 impl Ccl {
+    fn init_string(key: String, value: String) -> Self {
+        Self {
+            key: key,
+            value: vec![ValueEntry::String(value)],
+        }
+    }
+
+    fn init_nested(key: String, value: Vec<Ccl>) -> Self {
+        let mut ccl_val = Vec::new();
+        for ccl in value {
+            ccl_val.push(ValueEntry::Nested(ccl));
+        }
+        Self {
+            key: key,
+            value: ccl_val,
+        }
+    }
+
+    /// Recursively parse CCLs from a string
+    /// # Arguments:
+    /// - data: a string of CCLs
+    /// # Returns:
+    /// - A vector of CCLs
     fn parse(data: &str) -> Result<Vec<Self>, String> {
         let key_vals = KeyVal::parse_one_level(data)?;
 
@@ -91,18 +114,16 @@ impl Ccl {
             let value = key_val.value;
 
             let parsed_ccl = Self::parse(&value);
-            match parsed_ccl {
-                Err(e) => {
-                    let ccl = Ccl {
-                        key,
-                        value: vec![ValueEntry::String(value)],
-                    };
+            let ccl = match parsed_ccl {
+                Err(_) => {
+                    // Value is a string, not nested CCL
+                    Ccl::init_string(key, value)
                 }
-                Ok(ccls) => {
-                    // ?
-                    todo!()
+                Ok(nested_ccls) => {
+                    // Value contains nested CCLs
+                    Ccl::init_nested(key, nested_ccls)
                 }
-            }
+            };
             ccls.push(ccl);
         }
         Ok(ccls)
