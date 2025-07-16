@@ -90,14 +90,43 @@ fn indent(s: &str, indent: usize) -> String {
         .join("\n")
 }
 
+
+fn fmt_ccl(ccl: &Ccl, indent: usize, boxed: bool) -> String {
+    let mut s = String::new();
+    for (key, value) in ccl.0.iter() {
+
+        // one value and it's a string -> one line
+        if value.len() == 1 {
+            if let ValueEntry::String(string) = value.first().unwrap() {
+                let mut new = format!("{} = {}", key, string);
+                if boxed {
+                    new = add_box(&new);
+                }
+                s.push_str(new.as_str());
+                s.push_str("\n");
+            }
+        }
+        else {
+            let new_key_line = format!("{} =", key);
+            let new_value_line = 
+        }
+    }
+    s
+
+}
+
 /// Format a single key-value in CCL
-fn fmt_one(key: &str, value: &Vec<ValueEntry>) -> String {
+fn fmt_one(key: &str, value: &Vec<ValueEntry>, boxed: bool) -> String {
     let mut s = String::new();
     s.push_str(format!("{} = ", key).as_str());
 
     if value.len() == 1 {
         if let ValueEntry::String(string) = value.first().unwrap() {
             s.push_str(string);
+            if boxed {
+                // Add padding to the string
+                s = format!(" {} ", s);
+            }
             return s;
         }
     }
@@ -111,33 +140,38 @@ fn fmt_one(key: &str, value: &Vec<ValueEntry>) -> String {
                 s.push_str("\n");
             }
             ValueEntry::Nested(ccl) => {
-                s.push_str(indent(format!("{}", ccl).as_str(), 2).as_str());
+                s.push_str(indent)
+                // s.push_str(indent(format!("{}", ccl).as_str(), 2).as_str());
                 s.push_str("\n");
+                if boxed {
+                    s = add_box(&s);
+                }
             }
         }
     }
     s
 }
 
+fn fmt_ccl(ccl: &Ccl, boxed: bool) -> String {
+    ccl.0
+        .iter()
+        .map(|(key, value)| fmt_one(key, value, boxed))
+        .collect::<Vec<String>>()
+        .join("\n")
+}
+
 impl Display for Ccl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = self
-            .0
-            .iter()
-            .map(|(key, value)| fmt_one(key, value))
-            .collect::<Vec<String>>()
-            .join("\n");
-
-        write!(f, "{}", s)
+        write!(f, "{}", fmt_ccl(self, false))
     }
 }
 
 impl Ccl {
-    fn empty() -> Self {
+    pub fn empty() -> Self {
         Self(HashMap::new())
     }
 
-    fn key_val(key: String, value: String) -> Self {
+    pub fn key_val(key: String, value: String) -> Self {
         // TODO: should we check if the value can be parsed as a CCL?
         let value = vec![ValueEntry::String(value)];
         let mut ccl = HashMap::new();
@@ -145,7 +179,7 @@ impl Ccl {
         Ccl(ccl)
     }
 
-    fn nested(key: String, value: Vec<Ccl>) -> Self {
+    pub fn nested(key: String, value: Vec<Ccl>) -> Self {
         let mut ccl_val = Vec::new();
         for ccl in value {
             ccl_val.push(ValueEntry::Nested(ccl));
@@ -155,7 +189,7 @@ impl Ccl {
         Ccl(ccl)
     }
 
-    fn merge(self, other: Self) -> Self {
+    pub fn merge(self, other: Self) -> Self {
         let mut map = self.0;
         for (rkey, rvalues) in other.0 {
             if let Some(lvalues) = map.get_mut(&rkey) {
@@ -167,7 +201,7 @@ impl Ccl {
         Self(map)
     }
 
-    fn of_list(ccls: Vec<Self>) -> Self {
+    pub fn of_list(ccls: Vec<Self>) -> Self {
         ccls.iter()
             .fold(Self::empty(), |acc, ccl| acc.merge(ccl.clone()))
     }
@@ -177,7 +211,7 @@ impl Ccl {
     /// - data: a string of CCLs
     /// # Returns:
     /// - A CCL
-    fn parse(data: &str) -> Result<Self, String> {
+    pub fn parse(data: &str) -> Result<Self, String> {
         let key_vals = KeyVal::parse_top_level(data)?;
 
         let mut ccls = Vec::new();
@@ -200,12 +234,47 @@ impl Ccl {
         }
         Ok(Ccl::of_list(ccls))
     }
+
+    fn pretty(&self) -> String {
+        fmt_ccl(self, true)
+    }
 }
 
 impl From<KeyVal> for Ccl {
     fn from(key_val: KeyVal) -> Self {
         Ccl::key_val(key_val.key, key_val.value)
     }
+}
+
+const BOX_DRAWING_CHARS: (&str, &str, &str, &str, &str, &str) =
+    ("┌", "┐", "┘", "└", "─", "│");
+
+fn add_box(s: &str) -> String {
+    let (
+        top_left,
+        top_right,
+        bottom_right,
+        bottom_left,
+        _horizontal,
+        vertical,
+    ) = BOX_DRAWING_CHARS;
+    let lines = s.lines().collect::<Vec<&str>>();
+    let max_len = lines.iter().map(|line| line.len()).max().unwrap();
+    let mut result = String::new();
+    result.push_str(top_left);
+    result.push_str(&"─".repeat(max_len));
+    result.push_str(top_right);
+    result.push_str("\n");
+    for line in lines {
+        result.push_str(format!("{}{}", vertical, line).as_str());
+        let pad = " ".repeat(max_len - line.len());
+        result.push_str(format!("{}{}", pad, vertical).as_str());
+        result.push_str("\n");
+    }
+    result.push_str(bottom_left);
+    result.push_str(&"─".repeat(max_len));
+    result.push_str(bottom_right);
+    result
 }
 
 #[cfg(test)]
@@ -288,5 +357,24 @@ j = k
             a4 = b4
             a5 = b5
         ");
+    }
+
+    #[test]
+    fn test_add_box() {
+        let s = "a\nbb\nc";
+        let boxed = add_box(s);
+        insta::assert_snapshot!(boxed, @r"
+        ┌──┐
+        │a │
+        │bb│
+        │c │
+        └──┘
+        ");
+    }
+
+    #[test]
+    fn test_ccl_pretty() {
+        let ccl = Ccl::parse(data().as_str()).unwrap();
+        insta::assert_snapshot!(ccl.pretty(), @"");
     }
 }
