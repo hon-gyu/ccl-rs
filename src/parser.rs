@@ -150,29 +150,28 @@ trait Monoid {
 }
 
 impl Monoid for CCL {
+    fn empty() -> Self {
+        Self(KeyMap::new())
+    }
 
-fn fmt_ccl(ccl: &Ccl, indent: usize, boxed: bool) -> String {
-    let mut s = String::new();
-    for (key, value) in ccl.0.iter() {
+    fn merge(self, other: Self) -> Self {
+        let CCL(mut lmap) = self;
+        let CCL(rmap) = other;
 
-        // one value and it's a string -> one line
-        if value.len() == 1 {
-            if let ValueEntry::String(string) = value.first().unwrap() {
-                let mut new = format!("{} = {}", key, string);
-                if boxed {
-                    new = add_box(&new);
+        for (rkey, rvalues) in rmap {
+            match lmap.get_mut(&rkey) {
+                Some(lvalues) => {
+                    let merged = lvalues.clone().merge(rvalues);
+                    *lvalues = merged;
                 }
-                s.push_str(new.as_str());
-                s.push_str("\n");
+                None => {
+                    lmap.insert(rkey, rvalues);
+                }
             }
         }
-        else {
-            let new_key_line = format!("{} =", key);
-            let new_value_line = 
-        }
-    }
-    s
 
+        CCL(lmap)
+    }
 }
 
 /// Format a single key-value in CCL
