@@ -61,8 +61,24 @@ mod string_utils {
         result
     }
 }
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct KeyVal {
+    pub key: String,
+    pub value: String,
+}
+
+impl KeyVal {
+    pub fn new(key: String, value: String) -> Self {
+        Self {
+            key: key.trim().to_string(),
+            value: value.trim().to_string(),
+        }
+    }
+
+
     /// Parse a string into a vector of KeyVals by indentation
-    pub fn parse_top_level(data: &str) -> Result<Vec<Self>, String> {
+    pub fn parse(data: &str) -> Result<Vec<Self>, String> {
         let mut key_vals = Vec::new();
 
         let lines = data.trim().lines().collect::<Vec<&str>>();
@@ -101,6 +117,8 @@ impl Display for KeyVal {
         write!(f, "{} = {:?}", self.key, self.value)
     }
 }
+
+type KeyMap<T> = BTreeMap<String, T>;
 
 #[derive(Clone)]
 enum ValueEntry {
