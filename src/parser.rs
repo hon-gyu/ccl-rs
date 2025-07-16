@@ -174,6 +174,30 @@ impl Monoid for CCL {
     }
 }
 
+
+// fn fmt_ccl(ccl: &Ccl, indent: usize, boxed: bool) -> String {
+//     let mut s = String::new();
+//     for (key, value) in ccl.0.iter() {
+
+//         // one value and it's a string -> one line
+//         if value.len() == 1 {
+//             if let ValueEntry::String(string) = value.first().unwrap() {
+//                 let mut new = format!("{} = {}", key, string);
+//                 if boxed {
+//                     new = add_box(&new);
+//                 }
+//                 s.push_str(new.as_str());
+//                 s.push_str("\n");
+//             }
+//         }
+//         else {
+//             let new_key_line = format!("{} =", key);
+//             let new_value_line = 
+//         }
+//     }
+//     s
+// }
+
 /// Format a single key-value in CCL
 fn fmt_one(key: &str, value: &Vec<ValueEntry>, boxed: bool) -> String {
     let mut s = String::new();
@@ -271,7 +295,7 @@ impl Ccl {
     /// # Returns:
     /// - A CCL
     pub fn parse(data: &str) -> Result<Self, String> {
-        let key_vals = KeyVal::parse_top_level(data)?;
+        let key_vals = KeyVal::parse(data)?;
 
         let mut ccls = Vec::new();
         for key_val in key_vals {
@@ -305,37 +329,6 @@ impl From<KeyVal> for Ccl {
     }
 }
 
-const BOX_DRAWING_CHARS: (&str, &str, &str, &str, &str, &str) =
-    ("┌", "┐", "┘", "└", "─", "│");
-
-fn add_box(s: &str) -> String {
-    let (
-        top_left,
-        top_right,
-        bottom_right,
-        bottom_left,
-        _horizontal,
-        vertical,
-    ) = BOX_DRAWING_CHARS;
-    let lines = s.lines().collect::<Vec<&str>>();
-    let max_len = lines.iter().map(|line| line.len()).max().unwrap();
-    let mut result = String::new();
-    result.push_str(top_left);
-    result.push_str(&"─".repeat(max_len));
-    result.push_str(top_right);
-    result.push_str("\n");
-    for line in lines {
-        result.push_str(format!("{}{}", vertical, line).as_str());
-        let pad = " ".repeat(max_len - line.len());
-        result.push_str(format!("{}{}", pad, vertical).as_str());
-        result.push_str("\n");
-    }
-    result.push_str(bottom_left);
-    result.push_str(&"─".repeat(max_len));
-    result.push_str(bottom_right);
-    result
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -357,10 +350,27 @@ j = k
         .to_string()
     }
 
+    mod test_string_utils {
+        use super::string_utils;
+
+        #[test]
+        fn test_add_box() {
+            let s = "a\nbb\nc";
+            let boxed = string_utils::add_box(s);
+            insta::assert_snapshot!(boxed, @r"
+            ┌──┐
+            │a │
+            │bb│
+            │c │
+            └──┘
+            ");
+        }
+    }
+
     #[test]
-    fn test_parse() {
+    fn test_key_val_parse() {
         let data = data();
-        let key_vals = KeyVal::parse_top_level(&data).unwrap();
+        let key_vals = KeyVal::parse(&data).unwrap();
         let parsed_str = key_vals
             .iter()
             .map(|key_val| key_val.to_string())
@@ -418,22 +428,4 @@ j = k
         ");
     }
 
-    #[test]
-    fn test_add_box() {
-        let s = "a\nbb\nc";
-        let boxed = add_box(s);
-        insta::assert_snapshot!(boxed, @r"
-        ┌──┐
-        │a │
-        │bb│
-        │c │
-        └──┘
-        ");
-    }
-
-    #[test]
-    fn test_ccl_pretty() {
-        let ccl = Ccl::parse(data().as_str()).unwrap();
-        insta::assert_snapshot!(ccl.pretty(), @"");
-    }
 }
