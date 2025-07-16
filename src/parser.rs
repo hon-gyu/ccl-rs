@@ -128,8 +128,28 @@ enum Entry {
 
 type EntryMap = KeyMap<Vec<Entry>>;
 
+
+#[derive(Clone)]
+struct CCL(KeyMap<CCL>);
+
+
+trait Monoid {
+    fn empty() -> Self;
+    fn merge(self, other: Self) -> Self;
+
+    fn aggregate(items: Vec<Self>) -> Self 
+    where Self: Sized,
+    {
+        items
+            .into_iter()
+            .fold(
+                Self::empty(), 
+                |acc, item| acc.merge(item)
+            )
+    }
 }
 
+impl Monoid for CCL {
 
 fn fmt_ccl(ccl: &Ccl, indent: usize, boxed: bool) -> String {
     let mut s = String::new();
