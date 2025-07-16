@@ -121,21 +121,13 @@ impl Display for KeyVal {
 type KeyMap<T> = BTreeMap<String, T>;
 
 #[derive(Clone)]
-enum ValueEntry {
-    String(String),
-    Nested(Ccl),
+enum Entry {
+    Leaf(String),
+    Nested(EntryMap),
 }
 
-#[derive(Clone)]
-struct Ccl(HashMap<String, Vec<ValueEntry>>);
+type EntryMap = KeyMap<Vec<Entry>>;
 
-/// Indent a string by a given number of spaces for each line
-fn indent(s: &str, indent: usize) -> String {
-    let indent_str = " ".repeat(indent);
-    s.lines()
-        .map(|line| format!("{}{}", indent_str, line))
-        .collect::<Vec<String>>()
-        .join("\n")
 }
 
 
