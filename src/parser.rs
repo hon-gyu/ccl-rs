@@ -1,66 +1,8 @@
 use std::collections::HashMap;
 use std::collections::BTreeMap;
 use std::fmt::Display;
+use crate::monoid::Monoid;
 
-mod string_utils {
-    /// Indent a string by a given number of spaces for each line
-    pub fn indent(s: &str, indent: usize) -> String {
-        let indent_str = " ".repeat(indent);
-        s.lines()
-            .map(|line| format!("{}{}", indent_str, line))
-            .collect::<Vec<String>>()
-            .join("\n")
-    }
-
-    /// Dedent a vector of strings by the minimum indentation
-    pub fn dedent<'a>(lines: &[&'a str]) -> Vec<&'a str> {
-        let min_indent = lines
-            .iter()
-            .map(|line| line.len() - line.trim_start().len())
-            .min()
-            .unwrap();
-
-        // Learning note:
-        // Equivalent to `&(*line)[min_indent..]`
-        // indexing is method calling, so it will do derefer coercion
-        // indexing a slice gives a slice
-        // line[min_indent..] is of type str
-        // &line[min_indent..] is of type &str
-        lines.iter().map(|line| &line[min_indent..]).collect()
-    }
-
-    pub const BOX_DRAWING_CHARS: (&str, &str, &str, &str, &str, &str) =
-        ("┌", "┐", "┘", "└", "─", "│");
-
-    /// Add a box around a string
-    pub fn add_box(s: &str) -> String {
-        let (
-            top_left,
-            top_right,
-            bottom_right,
-            bottom_left,
-            _horizontal,
-            vertical,
-        ) = BOX_DRAWING_CHARS;
-        let lines = s.lines().collect::<Vec<&str>>();
-        let max_len = lines.iter().map(|line| line.len()).max().unwrap();
-        let mut result = String::new();
-        result.push_str(top_left);
-        result.push_str(&"─".repeat(max_len));
-        result.push_str(top_right);
-        result.push_str("\n");
-        for line in lines {
-            result.push_str(format!("{}{}", vertical, line).as_str());
-            let pad = " ".repeat(max_len - line.len());
-            result.push_str(format!("{}{}", pad, vertical).as_str());
-            result.push_str("\n");
-        }
-        result.push_str(bottom_left);
-        result.push_str(&"─".repeat(max_len));
-        result.push_str(bottom_right);
-        result
-    }
-}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct KeyVal {
@@ -68,6 +10,9 @@ pub struct KeyVal {
     pub value: String,
 }
 
+/// Vec<KeyVal> is a monoid with 
+///    - the empty list as the identity element
+///    - the concatenation of two lists as the merge operation
 impl KeyVal {
     pub fn new(key: String, value: String) -> Self {
         Self {
@@ -76,8 +21,19 @@ impl KeyVal {
         }
     }
 
-
     /// Parse a string into a vector of KeyVals by indentation
+    /// This function satisfies a peculiar property:
+    /// parse (cat ccl1 ccl2) ≡ parse ccl1 @ parse ccl2
+    /// In English, concatenating two files and then parsing the result is the same as 
+    /// parsing two files separately and then appending the resulting lists of 
+    /// key-value pairs.
+    /// parse is a monoid homomorphism from the monoid of strings to the monoid of 
+    /// key-value pairs.
+    /// monoid of strings has
+    ///     - the empty string as the identity element
+    ///     - the 'concatenation of two strings as the merge operation
+    /// Note: to handle intentation, cat will trim the leading whitespace (or 
+    /// indentation?).
     pub fn parse(data: &str) -> Result<Vec<Self>, String> {
         let mut key_vals = Vec::new();
 
@@ -118,6 +74,16 @@ impl Display for KeyVal {
     }
 }
 
+/// pretty and parse are monoid isomorphisms
+fn pretty(key_vals: &Vec<KeyVal>) -> String {
+    key_vals
+        .iter()
+        .map(|key_val| key_val.to_string())
+        .collect::<Vec<String>>()
+        .join("\n")
+}
+
+
 type KeyMap<T> = BTreeMap<String, T>;
 
 #[derive(Clone)]
@@ -129,25 +95,12 @@ enum Entry {
 type EntryMap = KeyMap<Vec<Entry>>;
 
 
+/// The only way to stop the recursion is to bind a key to an empty map. 
+/// And therefore, final level is values mapped to empty maps.
 #[derive(Clone)]
 struct CCL(KeyMap<CCL>);
 
 
-trait Monoid {
-    fn empty() -> Self;
-    fn merge(self, other: Self) -> Self;
-
-    fn aggregate(items: Vec<Self>) -> Self 
-    where Self: Sized,
-    {
-        items
-            .into_iter()
-            .fold(
-                Self::empty(), 
-                |acc, item| acc.merge(item)
-            )
-    }
-}
 
 impl Monoid for CCL {
     fn empty() -> Self {
@@ -348,23 +301,6 @@ j = k
   k = l
 "#
         .to_string()
-    }
-
-    mod test_string_utils {
-        use super::string_utils;
-
-        #[test]
-        fn test_add_box() {
-            let s = "a\nbb\nc";
-            let boxed = string_utils::add_box(s);
-            insta::assert_snapshot!(boxed, @r"
-            ┌──┐
-            │a │
-            │bb│
-            │c │
-            └──┘
-            ");
-        }
     }
 
     #[test]
