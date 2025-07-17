@@ -1,8 +1,7 @@
-use std::collections::HashMap;
-use std::collections::BTreeMap;
-use std::fmt::Display;
 use crate::monoid::Monoid;
-
+use std::collections::BTreeMap;
+use std::collections::HashMap;
+use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct KeyVal {
@@ -10,7 +9,7 @@ pub struct KeyVal {
     pub value: String,
 }
 
-/// Vec<KeyVal> is a monoid with 
+/// Vec<KeyVal> is a monoid with
 ///    - the empty list as the identity element
 ///    - the concatenation of two lists as the merge operation
 impl KeyVal {
@@ -24,15 +23,15 @@ impl KeyVal {
     /// Parse a string into a vector of KeyVals by indentation
     /// This function satisfies a peculiar property:
     /// parse (cat ccl1 ccl2) ≡ parse ccl1 @ parse ccl2
-    /// In English, concatenating two files and then parsing the result is the same as 
-    /// parsing two files separately and then appending the resulting lists of 
+    /// In English, concatenating two files and then parsing the result is the same as
+    /// parsing two files separately and then appending the resulting lists of
     /// key-value pairs.
-    /// parse is a monoid homomorphism from the monoid of strings to the monoid of 
+    /// parse is a monoid homomorphism from the monoid of strings to the monoid of
     /// key-value pairs.
     /// monoid of strings has
     ///     - the empty string as the identity element
     ///     - the 'concatenation of two strings as the merge operation
-    /// Note: to handle intentation, cat will trim the leading whitespace (or 
+    /// Note: to handle intentation, cat will trim the leading whitespace (or
     /// indentation?).
     pub fn parse(data: &str) -> Result<Vec<Self>, String> {
         let mut key_vals = Vec::new();
@@ -83,7 +82,6 @@ fn pretty(key_vals: &Vec<KeyVal>) -> String {
         .join("\n")
 }
 
-
 type KeyMap<T> = BTreeMap<String, T>;
 
 #[derive(Clone)]
@@ -94,13 +92,10 @@ enum Entry {
 
 type EntryMap = KeyMap<Vec<Entry>>;
 
-
-/// The only way to stop the recursion is to bind a key to an empty map. 
+/// The only way to stop the recursion is to bind a key to an empty map.
 /// And therefore, final level is values mapped to empty maps.
 #[derive(Clone)]
 struct CCL(KeyMap<CCL>);
-
-
 
 impl Monoid for CCL {
     fn empty() -> Self {
@@ -127,7 +122,6 @@ impl Monoid for CCL {
     }
 }
 
-
 // fn fmt_ccl(ccl: &Ccl, indent: usize, boxed: bool) -> String {
 //     let mut s = String::new();
 //     for (key, value) in ccl.0.iter() {
@@ -145,142 +139,142 @@ impl Monoid for CCL {
 //         }
 //         else {
 //             let new_key_line = format!("{} =", key);
-//             let new_value_line = 
+//             let new_value_line =
 //         }
 //     }
 //     s
 // }
 
-/// Format a single key-value in CCL
-fn fmt_one(key: &str, value: &Vec<ValueEntry>, boxed: bool) -> String {
-    let mut s = String::new();
-    s.push_str(format!("{} = ", key).as_str());
+// /// Format a single key-value in CCL
+// fn fmt_one(key: &str, value: &Vec<ValueEntry>, boxed: bool) -> String {
+//     let mut s = String::new();
+//     s.push_str(format!("{} = ", key).as_str());
 
-    if value.len() == 1 {
-        if let ValueEntry::String(string) = value.first().unwrap() {
-            s.push_str(string);
-            if boxed {
-                // Add padding to the string
-                s = format!(" {} ", s);
-            }
-            return s;
-        }
-    }
+//     if value.len() == 1 {
+//         if let ValueEntry::String(string) = value.first().unwrap() {
+//             s.push_str(string);
+//             if boxed {
+//                 // Add padding to the string
+//                 s = format!(" {} ", s);
+//             }
+//             return s;
+//         }
+//     }
 
-    s.push_str("\n");
+//     s.push_str("\n");
 
-    for value_entry in value.iter() {
-        match value_entry {
-            ValueEntry::String(string) => {
-                s.push_str(indent(string, 2).as_str());
-                s.push_str("\n");
-            }
-            ValueEntry::Nested(ccl) => {
-                s.push_str(indent)
-                // s.push_str(indent(format!("{}", ccl).as_str(), 2).as_str());
-                s.push_str("\n");
-                if boxed {
-                    s = add_box(&s);
-                }
-            }
-        }
-    }
-    s
-}
+//     for value_entry in value.iter() {
+//         match value_entry {
+//             ValueEntry::String(string) => {
+//                 s.push_str(indent(string, 2).as_str());
+//                 s.push_str("\n");
+//             }
+//             ValueEntry::Nested(ccl) => {
+//                 s.push_str(indent)
+//                 // s.push_str(indent(format!("{}", ccl).as_str(), 2).as_str());
+//                 s.push_str("\n");
+//                 if boxed {
+//                     s = add_box(&s);
+//                 }
+//             }
+//         }
+//     }
+//     s
+// }
 
-fn fmt_ccl(ccl: &Ccl, boxed: bool) -> String {
-    ccl.0
-        .iter()
-        .map(|(key, value)| fmt_one(key, value, boxed))
-        .collect::<Vec<String>>()
-        .join("\n")
-}
+// fn fmt_ccl(ccl: &Ccl, boxed: bool) -> String {
+//     ccl.0
+//         .iter()
+//         .map(|(key, value)| fmt_one(key, value, boxed))
+//         .collect::<Vec<String>>()
+//         .join("\n")
+// }
 
-impl Display for Ccl {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", fmt_ccl(self, false))
-    }
-}
+// impl Display for Ccl {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "{}", fmt_ccl(self, false))
+//     }
+// }
 
-impl Ccl {
-    pub fn empty() -> Self {
-        Self(HashMap::new())
-    }
+// impl Ccl {
+//     pub fn empty() -> Self {
+//         Self(HashMap::new())
+//     }
 
-    pub fn key_val(key: String, value: String) -> Self {
-        // TODO: should we check if the value can be parsed as a CCL?
-        let value = vec![ValueEntry::String(value)];
-        let mut ccl = HashMap::new();
-        ccl.insert(key, value);
-        Ccl(ccl)
-    }
+//     pub fn key_val(key: String, value: String) -> Self {
+//         // TODO: should we check if the value can be parsed as a CCL?
+//         let value = vec![ValueEntry::String(value)];
+//         let mut ccl = HashMap::new();
+//         ccl.insert(key, value);
+//         Ccl(ccl)
+//     }
 
-    pub fn nested(key: String, value: Vec<Ccl>) -> Self {
-        let mut ccl_val = Vec::new();
-        for ccl in value {
-            ccl_val.push(ValueEntry::Nested(ccl));
-        }
-        let mut ccl = HashMap::new();
-        ccl.insert(key, ccl_val);
-        Ccl(ccl)
-    }
+//     pub fn nested(key: String, value: Vec<Ccl>) -> Self {
+//         let mut ccl_val = Vec::new();
+//         for ccl in value {
+//             ccl_val.push(ValueEntry::Nested(ccl));
+//         }
+//         let mut ccl = HashMap::new();
+//         ccl.insert(key, ccl_val);
+//         Ccl(ccl)
+//     }
 
-    pub fn merge(self, other: Self) -> Self {
-        let mut map = self.0;
-        for (rkey, rvalues) in other.0 {
-            if let Some(lvalues) = map.get_mut(&rkey) {
-                lvalues.extend(rvalues);
-            } else {
-                map.insert(rkey, rvalues);
-            }
-        }
-        Self(map)
-    }
+//     pub fn merge(self, other: Self) -> Self {
+//         let mut map = self.0;
+//         for (rkey, rvalues) in other.0 {
+//             if let Some(lvalues) = map.get_mut(&rkey) {
+//                 lvalues.extend(rvalues);
+//             } else {
+//                 map.insert(rkey, rvalues);
+//             }
+//         }
+//         Self(map)
+//     }
 
-    pub fn of_list(ccls: Vec<Self>) -> Self {
-        ccls.iter()
-            .fold(Self::empty(), |acc, ccl| acc.merge(ccl.clone()))
-    }
+//     pub fn of_list(ccls: Vec<Self>) -> Self {
+//         ccls.iter()
+//             .fold(Self::empty(), |acc, ccl| acc.merge(ccl.clone()))
+//     }
 
-    /// Recursively parse CCLs from a string
-    /// # Arguments:
-    /// - data: a string of CCLs
-    /// # Returns:
-    /// - A CCL
-    pub fn parse(data: &str) -> Result<Self, String> {
-        let key_vals = KeyVal::parse(data)?;
+//     /// Recursively parse CCLs from a string
+//     /// # Arguments:
+//     /// - data: a string of CCLs
+//     /// # Returns:
+//     /// - A CCL
+//     pub fn parse(data: &str) -> Result<Self, String> {
+//         let key_vals = KeyVal::parse(data)?;
 
-        let mut ccls = Vec::new();
-        for key_val in key_vals {
-            let key = key_val.key;
-            let value = key_val.value;
+//         let mut ccls = Vec::new();
+//         for key_val in key_vals {
+//             let key = key_val.key;
+//             let value = key_val.value;
 
-            let parsed_ccl = Self::parse(&value);
-            let ccl = match parsed_ccl {
-                Err(_) => {
-                    // Value is a string, not nested CCL
-                    Ccl::key_val(key, value)
-                }
-                Ok(nested_ccl) => {
-                    // Value contains nested CCLs
-                    Ccl::nested(key, vec![nested_ccl])
-                }
-            };
-            ccls.push(ccl);
-        }
-        Ok(Ccl::of_list(ccls))
-    }
+//             let parsed_ccl = Self::parse(&value);
+//             let ccl = match parsed_ccl {
+//                 Err(_) => {
+//                     // Value is a string, not nested CCL
+//                     Ccl::key_val(key, value)
+//                 }
+//                 Ok(nested_ccl) => {
+//                     // Value contains nested CCLs
+//                     Ccl::nested(key, vec![nested_ccl])
+//                 }
+//             };
+//             ccls.push(ccl);
+//         }
+//         Ok(Ccl::of_list(ccls))
+//     }
 
-    fn pretty(&self) -> String {
-        fmt_ccl(self, true)
-    }
-}
+//     fn pretty(&self) -> String {
+//         fmt_ccl(self, true)
+//     }
+// }
 
-impl From<KeyVal> for Ccl {
-    fn from(key_val: KeyVal) -> Self {
-        Ccl::key_val(key_val.key, key_val.value)
-    }
-}
+// impl From<KeyVal> for Ccl {
+//     fn from(key_val: KeyVal) -> Self {
+//         Ccl::key_val(key_val.key, key_val.value)
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
@@ -322,46 +316,45 @@ j = k
         "#);
     }
 
-    #[test]
-    fn test_ccl_init_string() {
-        let ccl = Ccl::key_val("a".to_string(), "b".to_string());
-        insta::assert_snapshot!(ccl, @"a = b")
-    }
+    // #[test]
+    // fn test_ccl_init_string() {
+    //     let ccl = Ccl::key_val("a".to_string(), "b".to_string());
+    //     insta::assert_snapshot!(ccl, @"a = b")
+    // }
 
-    #[test]
-    fn test_ccl_init_nested() {
-        let ccls = (1..6)
-            .map(|i| Ccl::key_val(format!("a{}", i), format!("b{}", i)))
-            .collect::<Vec<Ccl>>();
-        let ccl = Ccl::nested("root".to_string(), ccls);
-        insta::assert_snapshot!(ccl, @r"
-        root = 
-          a1 = b1
-          a2 = b2
-          a3 = b3
-          a4 = b4
-          a5 = b5
-        ");
+    // #[test]
+    // fn test_ccl_init_nested() {
+    //     let ccls = (1..6)
+    //         .map(|i| Ccl::key_val(format!("a{}", i), format!("b{}", i)))
+    //         .collect::<Vec<Ccl>>();
+    //     let ccl = Ccl::nested("root".to_string(), ccls);
+    //     insta::assert_snapshot!(ccl, @r"
+    //     root =
+    //       a1 = b1
+    //       a2 = b2
+    //       a3 = b3
+    //       a4 = b4
+    //       a5 = b5
+    //     ");
 
-        let ccl2 = Ccl::nested(
-            "root's root".to_string(),
-            vec![ccl.clone(), ccl.clone()],
-        );
-        insta::assert_snapshot!(ccl2, @r"
-        root's root = 
-          root = 
-            a1 = b1
-            a2 = b2
-            a3 = b3
-            a4 = b4
-            a5 = b5
-          root = 
-            a1 = b1
-            a2 = b2
-            a3 = b3
-            a4 = b4
-            a5 = b5
-        ");
-    }
-
+    //     let ccl2 = Ccl::nested(
+    //         "root's root".to_string(),
+    //         vec![ccl.clone(), ccl.clone()],
+    //     );
+    //     insta::assert_snapshot!(ccl2, @r"
+    //     root's root =
+    //       root =
+    //         a1 = b1
+    //         a2 = b2
+    //         a3 = b3
+    //         a4 = b4
+    //         a5 = b5
+    //       root =
+    //         a1 = b1
+    //         a2 = b2
+    //         a3 = b3
+    //         a4 = b4
+    //         a5 = b5
+    //     ");
+    // }
 }
