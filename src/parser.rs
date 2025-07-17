@@ -122,6 +122,49 @@ impl Monoid for CCL {
     }
 }
 
+/// Helpers
+impl CCL {
+    /// ```text
+    /// key =
+    /// ```
+    pub fn key(key: &str) -> Self {
+        let mut map = KeyMap::new();
+        map.insert(key.to_string(), CCL::empty());
+        CCL(map)
+    }
+
+    /// ```text
+    /// key =
+    ///     value =
+    /// ```
+    pub fn key_val(key: &str, value: &str) -> Self {
+        let mut map = KeyMap::new();
+        map.insert(key.to_string(), CCL::key(value));
+        CCL(map)
+    }
+
+    pub fn pretty(&self) -> String {
+        let mut buf = String::new();
+        self.pretty_impl(0, &mut buf);
+        buf
+    }
+
+    /// terminal case is empty map (no key-value pairs to iterate over)
+    fn pretty_impl(&self, indent: usize, buf: &mut String) {
+        let CCL(map) = self;
+        for (key, value) in map {
+            let prefix = " ".repeat(indent);
+            buf.push_str(&prefix);
+            buf.push_str(key);
+            buf.push_str(" =\n");
+            value.pretty_impl(indent + 2, buf);
+        }
+    }
+}
+
+#[cfg(test)]
+mod test_ccl {}
+
 // fn fmt_ccl(ccl: &Ccl, indent: usize, boxed: bool) -> String {
 //     let mut s = String::new();
 //     for (key, value) in ccl.0.iter() {
@@ -277,7 +320,7 @@ impl Monoid for CCL {
 // }
 
 #[cfg(test)]
-mod tests {
+mod test_key_val {
     use super::*;
 
     fn data() -> String {
