@@ -143,6 +143,17 @@ impl CCL {
         CCL(map)
     }
 
+    /// ```text
+    /// key =
+    ///     value1 =
+    ///     value2 =
+    /// ```
+    pub fn nested(key: &str, values: Vec<CCL>) -> Self {
+        let mut map = KeyMap::new();
+        map.insert(key.to_string(), CCL::aggregate(values));
+        CCL(map)
+    }
+
     pub fn pretty(&self) -> String {
         let mut buf = String::new();
         self.pretty_impl(0, &mut buf);
@@ -163,7 +174,29 @@ impl CCL {
 }
 
 #[cfg(test)]
-mod test_ccl {}
+mod test_ccl {
+    use super::*;
+
+    #[test]
+    fn test_ccl_pretty() {
+        let ccl = CCL::nested(
+            "a",
+            vec![
+                CCL::key_val("b", "c"),
+                CCL::key_val("d", "e"),
+                CCL::key("h"),
+            ],
+        );
+        insta::assert_snapshot!(ccl.pretty(), @r"
+        a =
+          b =
+            c =
+          d =
+            e =
+          h =
+        ");
+    }
+}
 
 // fn fmt_ccl(ccl: &Ccl, indent: usize, boxed: bool) -> String {
 //     let mut s = String::new();
