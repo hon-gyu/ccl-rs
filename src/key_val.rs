@@ -119,13 +119,9 @@ j = k
     fn test_key_val_parse() {
         let data = data();
         let key_vals = KeyVal::parse(&data).unwrap();
-        let parsed_str = key_vals
-            .iter()
-            .map(|key_val| key_val.to_string())
-            .collect::<Vec<String>>()
-            .join("\n");
+        let pretty_str = KeyVal::pretty(&key_vals);
 
-        insta::assert_snapshot!(parsed_str, @r#"
+        insta::assert_snapshot!(pretty_str, @r#"
         a = "b"
         b = "\n  c = d\n  d =\n    e = f\n    f = g\n  g = h"
         h = "i"

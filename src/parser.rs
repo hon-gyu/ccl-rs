@@ -1,20 +1,13 @@
+use crate::key_val::{KeyVal, KeyVals};
 use crate::monoid::Monoid;
 use std::collections::BTreeMap;
 
 type KeyMap<T> = BTreeMap<String, T>;
 
-#[derive(Clone)]
-enum Entry {
-    Leaf(String),
-    Nested(EntryMap),
-}
-
-type EntryMap = KeyMap<Vec<Entry>>;
-
 /// The only way to stop the recursion is to bind a key to an empty map.
 /// And therefore, final level is values mapped to empty maps.
-#[derive(Clone)]
-struct CCL(KeyMap<CCL>);
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CCL(KeyMap<CCL>);
 
 impl Monoid for CCL {
     fn empty() -> Self {
@@ -92,6 +85,18 @@ impl CCL {
     }
 }
 
+#[derive(Clone)]
+enum Entry {
+    Leaf(String),
+    Nested(EntryMap),
+}
+
+type EntryMap = KeyMap<Vec<Entry>>;
+
+fn parse(key_vals: KeyVals) -> CCL {
+    todo!()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -114,5 +119,28 @@ mod tests {
             e =
           h =
         ");
+    }
+
+    #[test]
+    fn test_merge() {
+        let ccl1 = CCL::nested("a", vec![CCL::key_val("b", "c")]);
+        let ccl2 = CCL::nested("a", vec![CCL::key_val("b", "d")]);
+        insta::assert_snapshot!(ccl1.merge(ccl2).pretty(), @r"
+        a =
+          b =
+            c =
+            d =
+        ");
+    }
+
+    #[test]
+    fn test_merge_associativity() {
+        let ccl1 = CCL::nested("a", vec![CCL::key_val("b", "c")]);
+        let ccl2 = CCL::nested("a", vec![CCL::key_val("b", "d")]);
+        let ccl3 = CCL::nested("a", vec![CCL::key_val("b", "e")]);
+        assert_eq!(
+            ccl1.clone().merge(ccl2.clone()).merge(ccl3.clone()),
+            ccl1.clone().merge(ccl2.clone().merge(ccl3.clone()))
+        );
     }
 }
