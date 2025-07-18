@@ -1,3 +1,4 @@
+pub mod key_val;
 pub mod model;
 pub mod monoid;
 pub mod parser;
