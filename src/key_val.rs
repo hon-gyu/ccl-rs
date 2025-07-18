@@ -1,7 +1,8 @@
 use crate::monoid::Monoid;
+use std::collections::BTreeMap;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct KeyVal {
     pub key: String,
     pub value: String,
@@ -99,6 +100,53 @@ impl Monoid for KeyVals {
         merged.extend(other);
         merged
     }
+}
+
+pub type KeyValTree = BTreeMap<String, Vec<KeyValNode>>;
+
+fn insert_map<'a, T>(
+    map: &'a mut BTreeMap<String, Vec<T>>,
+    key: &str,
+    value: T,
+) -> &'a mut BTreeMap<String, Vec<T>> {
+    if let Some(nodes) = map.get_mut(key) {
+        nodes.push(value);
+    } else {
+        map.insert(key.to_string(), vec![value]);
+    }
+
+    map
+}
+
+#[derive(Clone)]
+pub enum KeyValNode {
+    Leaf(String),
+    Tree(KeyValTree),
+}
+
+fn _leave_to_key_val(key: &str, node: KeyValNode) -> Option<KeyVal> {
+    match node {
+        KeyValNode::Leaf(value) => Some(KeyVal::new(key.to_string(), value)),
+        _ => None,
+    }
+}
+
+pub fn parse_flat_to_tree(key_vals: &KeyVals) -> KeyValTree {
+    let mut tree = KeyValTree::new();
+
+    for key_val in key_vals {
+        let KeyVal { key, value } = key_val;
+        let node = match KeyVal::parse(value) {
+            Ok(new_key_vals) => {
+                KeyValNode::Tree(parse_flat_to_tree(&new_key_vals))
+            }
+            Err(_) => KeyValNode::Leaf(value.to_string()),
+        };
+
+        insert_map(&mut tree, key, node);
+    }
+
+    tree
 }
 
 #[cfg(test)]
