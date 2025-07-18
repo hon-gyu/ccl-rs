@@ -18,6 +18,10 @@ impl Display for KeyVal {
 ///    - the concatenation of two lists as the merge operation
 pub type KeyVals = Vec<KeyVal>;
 
+fn get_indent(line: &str) -> usize {
+    line.len() - line.trim_start().len()
+}
+
 impl KeyVal {
     pub fn new(key: String, value: String) -> Self {
         Self {
@@ -49,10 +53,12 @@ impl KeyVal {
             return Ok(key_vals);
         }
 
-        for (i, line) in lines.iter().enumerate() {
-            let indentation = line.len() - line.trim_start().len();
+        let fst_indent = get_indent(lines[0]);
+        for line in lines.iter() {
+            let indentation = get_indent(line);
 
-            if i == 0 || indentation == 0 {
+            // 1. indent < fst_indent: new key-value pair
+            if indentation <= fst_indent {
                 let Some((curr_key, curr_value)) = line.split_once("=")
                 else {
                     return Err(format!("Invalid line: {}", line));
@@ -64,6 +70,7 @@ impl KeyVal {
                 ));
                 continue;
             } else {
+                // 2. indent > fst_indent: continue the previous value
                 let last_key_val = key_vals.last_mut().unwrap();
                 last_key_val.value.push_str(&format!("\n{}", line));
             }
@@ -128,5 +135,15 @@ j = k
         i = "j"
         j = "k\n  k = l"
         "#);
+    }
+
+    #[test]
+    fn test_key_val_parse_trailing_indent() {
+        let data = r#"
+  a = b
+  c = d
+"#;
+        let key_vals = KeyVal::parse(data).unwrap();
+        insta::assert_snapshot!(KeyVal::pretty(&key_vals), @r#"a = "b\n  c = d""#);
     }
 }
