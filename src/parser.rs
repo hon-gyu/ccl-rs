@@ -9,9 +9,6 @@ pub struct KeyVal {
     pub value: String,
 }
 
-/// Vec<KeyVal> is a monoid with
-///    - the empty list as the identity element
-///    - the concatenation of two lists as the merge operation
 impl KeyVal {
     pub fn new(key: String, value: String) -> Self {
         Self {
@@ -20,7 +17,32 @@ impl KeyVal {
         }
     }
 
-    /// Parse a string into a vector of KeyVals by indentation
+impl Display for KeyVal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} = {:?}", self.key, self.value)
+    }
+}
+
+/// Vec<KeyVal> is a monoid with
+///    - the empty list as the identity element
+///    - the concatenation of two lists as the merge operation
+pub type KeyVals = Vec<KeyVal>;
+
+impl Monoid for KeyVals {
+    fn empty() -> Self {
+        Vec::new()
+    }
+
+    fn merge(self, other: Self) -> Self {
+        let mut merged = self;
+        merged.extend(other);
+        merged
+    }
+}
+
+
+impl KeyVals {
+    /// Parse a string into a vector of KeyVal by indentation
     /// This function satisfies a peculiar property:
     /// parse (cat ccl1 ccl2) ≡ parse ccl1 @ parse ccl2
     /// In English, concatenating two files and then parsing the result is the same as
@@ -33,7 +55,7 @@ impl KeyVal {
     ///     - the 'concatenation of two strings as the merge operation
     /// Note: to handle intentation, cat will trim the leading whitespace (or
     /// indentation?).
-    pub fn parse(data: &str) -> Result<Vec<Self>, String> {
+    pub fn parse(data: &str) -> Result<Self, String> {
         let mut key_vals = Vec::new();
 
         let lines = data.trim().lines().collect::<Vec<&str>>();
@@ -65,21 +87,15 @@ impl KeyVal {
 
         Ok(key_vals)
     }
-}
 
-impl Display for KeyVal {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} = {:?}", self.key, self.value)
+    /// pretty and parse are monoid isomorphisms
+    fn pretty(&self) -> String {
+        self
+            .iter()
+            .map(|key_val| key_val.to_string())
+            .collect::<Vec<String>>()
+            .join("\n")
     }
-}
-
-/// pretty and parse are monoid isomorphisms
-fn pretty(key_vals: &Vec<KeyVal>) -> String {
-    key_vals
-        .iter()
-        .map(|key_val| key_val.to_string())
-        .collect::<Vec<String>>()
-        .join("\n")
 }
 
 type KeyMap<T> = BTreeMap<String, T>;
