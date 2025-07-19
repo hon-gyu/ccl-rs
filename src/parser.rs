@@ -1,6 +1,4 @@
-use crate::key_val::{
-    KeyVal, KeyValNode, KeyValTree, KeyVals, parse_flat_to_tree,
-};
+use crate::key_val::{KeyVal, KeyValNode, KeyValTree, KeyVals};
 use crate::monoid::Monoid;
 use std::collections::BTreeMap;
 
@@ -87,29 +85,31 @@ impl CCL {
     }
 }
 
-fn parse_tree_to_fix(tree: KeyValTree) -> CCL {
-    let mut ccl = CCL::empty();
+impl CCL {
+    fn parse_tree_to_fix(tree: KeyValTree) -> CCL {
+        let mut ccl = CCL::empty();
 
-    for (key, values) in tree {
-        let ccls = values
-            .iter()
-            .map(|value| match value {
-                KeyValNode::Leaf(leaf) => CCL::key_val(&key, leaf),
-                KeyValNode::Tree(tree) => {
-                    CCL::nested(&key, vec![parse_tree_to_fix(tree.clone())])
-                }
-            })
-            .collect::<Vec<CCL>>();
+        for (key, values) in tree {
+            let ccls = values
+                .iter()
+                .map(|value| match value {
+                    KeyValNode::Leaf(leaf) => CCL::key_val(&key, leaf),
+                    KeyValNode::Tree(tree) => CCL::nested(
+                        &key,
+                        vec![CCL::parse_tree_to_fix(tree.clone())],
+                    ),
+                })
+                .collect::<Vec<CCL>>();
 
-        ccl = ccl.merge(CCL::aggregate(ccls));
+            ccl = ccl.merge(CCL::aggregate(ccls));
+        }
+        ccl
     }
-    ccl
-}
 
-fn parse(key_vals: KeyVals) -> CCL {
-    parse_tree_to_fix(parse_flat_to_tree(&key_vals))
+    pub fn parse(key_vals: KeyVals) -> CCL {
+        CCL::parse_tree_to_fix(KeyVal::parse_flat_to_tree(&key_vals))
+    }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -166,7 +166,7 @@ mod tests {
             d = e
         "#;
         let key_vals = KeyVal::parse(data).unwrap();
-        let ccl = parse(key_vals);
+        let ccl = CCL::parse(key_vals);
         insta::assert_debug_snapshot!(ccl, @r#"
         CCL(
             {

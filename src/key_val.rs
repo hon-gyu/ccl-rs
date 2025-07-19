@@ -95,6 +95,24 @@ impl KeyVal {
             .collect::<Vec<String>>()
             .join("\n")
     }
+
+    pub fn parse_flat_to_tree(key_vals: &KeyVals) -> KeyValTree {
+        let mut tree = KeyValTree::new();
+
+        for key_val in key_vals {
+            let KeyVal { key, value } = key_val;
+            let node = match KeyVal::parse(value) {
+                Ok(new_key_vals) => KeyValNode::Tree(
+                    KeyVal::parse_flat_to_tree(&new_key_vals),
+                ),
+                Err(_) => KeyValNode::Leaf(value.to_string()),
+            };
+
+            insert_map(&mut tree, key, node);
+        }
+
+        tree
+    }
 }
 
 impl Monoid for KeyVals {
@@ -177,24 +195,6 @@ fn _leave_to_key_val(key: &str, node: KeyValNode) -> Option<KeyVal> {
     }
 }
 
-pub fn parse_flat_to_tree(key_vals: &KeyVals) -> KeyValTree {
-    let mut tree = KeyValTree::new();
-
-    for key_val in key_vals {
-        let KeyVal { key, value } = key_val;
-        let node = match KeyVal::parse(value) {
-            Ok(new_key_vals) => {
-                KeyValNode::Tree(parse_flat_to_tree(&new_key_vals))
-            }
-            Err(_) => KeyValNode::Leaf(value.to_string()),
-        };
-
-        insert_map(&mut tree, key, node);
-    }
-
-    tree
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -248,7 +248,7 @@ j = k
         ]
         "#);
 
-        let tree = parse_flat_to_tree(&key_vals);
+        let tree = KeyVal::parse_flat_to_tree(&key_vals);
         insta::assert_debug_snapshot!(tree, @r#"
         {
             "a": [
@@ -313,7 +313,7 @@ a =
         ]
         "#);
 
-        let tree = parse_flat_to_tree(&key_vals);
+        let tree = KeyVal::parse_flat_to_tree(&key_vals);
 
         insta::assert_debug_snapshot!(tree, @r#"
         {
@@ -341,7 +341,7 @@ a =
     fn test_parse_flat_to_tree_2() {
         let data = data();
         let key_vals = KeyVal::parse(&data).unwrap();
-        let tree = parse_flat_to_tree(&key_vals);
+        let tree = KeyVal::parse_flat_to_tree(&key_vals);
 
         insta::assert_debug_snapshot!(tree, @r#"
         {
