@@ -85,16 +85,24 @@ impl CCL {
     }
 }
 
+type EntryMap = KeyMap<Vec<Entry>>;
+
 #[derive(Clone)]
 enum Entry {
     Leaf(String),
     Nested(EntryMap),
 }
 
-type EntryMap = KeyMap<Vec<Entry>>;
+fn parse_flat_to_tree(flat: KeyVals) -> EntryMap {
+    todo!()
+}
+
+fn parse_tree_to_fix(tree: EntryMap) -> CCL {
+    todo!()
+}
 
 fn parse(key_vals: KeyVals) -> CCL {
-    todo!()
+    parse_tree_to_fix(parse_flat_to_tree(key_vals))
 }
 
 #[cfg(test)]

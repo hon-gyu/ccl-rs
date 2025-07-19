@@ -1,4 +1,5 @@
 use crate::monoid::Monoid;
+use crate::string_utils::*;
 use std::collections::BTreeMap;
 use std::fmt::Display;
 
@@ -47,7 +48,13 @@ impl KeyVal {
     pub fn parse(data: &str) -> Result<KeyVals, String> {
         let mut key_vals = Vec::new();
 
-        let lines = data.trim().lines().collect::<Vec<&str>>();
+        let lines = data.lines().collect::<Vec<&str>>();
+
+        // Delete empty lines
+        let lines = lines
+            .into_iter()
+            .filter(|line| !line.is_empty())
+            .collect::<Vec<&str>>();
 
         let len = lines.len();
         if len == 0 {
@@ -102,8 +109,6 @@ impl Monoid for KeyVals {
     }
 }
 
-pub type KeyValTree = BTreeMap<String, Vec<KeyValNode>>;
-
 fn insert_map<'a, T>(
     map: &'a mut BTreeMap<String, Vec<T>>,
     key: &str,
@@ -118,11 +123,52 @@ fn insert_map<'a, T>(
     map
 }
 
-#[derive(Clone)]
+pub type KeyValTree = BTreeMap<String, Vec<KeyValNode>>;
+
+#[derive(Clone, Debug)]
 pub enum KeyValNode {
     Leaf(String),
     Tree(KeyValTree),
 }
+
+// fn pretty_tree(tree: &KeyValTree) -> String {
+//     let mut buf = String::new();
+
+//     let mut items = vec![];
+//     for (key, value) in tree {
+//         let to_push = pretty_item(key, value);
+//         items.push(to_push);
+//     }
+
+//     buf.push_str(&items.join("\n"));
+//     buf
+// }
+
+// fn pretty_item(key: &str, value: &Vec<KeyValNode>) -> String {
+//     let mut buf = String::new();
+
+//     buf.push_str(&format!(" {} =\n", key));
+
+//     let mut items = vec![];
+//     for node in value {
+//         match node {
+//             KeyValNode::Leaf(leaf) => {
+//                 let mut to_push = format!(" {} ", leaf);
+//                 to_push = indent(&to_push, 2);
+//                 items.push(to_push);
+//             }
+//             KeyValNode::Tree(tree) => {
+//                 let mut to_push = pretty_tree(tree);
+//                 to_push = add_box(&to_push);
+//                 to_push = indent(&to_push, 2);
+//                 items.push(to_push);
+//             }
+//         }
+//     }
+
+//     buf.push_str(&items.join("\n"));
+//     buf
+// }
 
 fn _leave_to_key_val(key: &str, node: KeyValNode) -> Option<KeyVal> {
     match node {
@@ -192,6 +238,126 @@ j = k
   c = d
 "#;
         let key_vals = KeyVal::parse(data).unwrap();
-        insta::assert_snapshot!(KeyVal::pretty(&key_vals), @r#"a = "b\n  c = d""#);
+        insta::assert_debug_snapshot!(key_vals, @r#"
+        [
+            KeyVal {
+                key: "a",
+                value: "b",
+            },
+            KeyVal {
+                key: "c",
+                value: "d",
+            },
+        ]
+        "#);
+        insta::assert_snapshot!(KeyVal::pretty(&key_vals), @r#"
+        a = "b"
+        c = "d"
+        "#);
+    }
+
+    #[test]
+    fn test_parse_flat_to_tree_1() {
+        let data = r#"
+a = 
+  b = c
+  d = e
+"#;
+        let key_vals = KeyVal::parse(data).unwrap();
+        insta::assert_debug_snapshot!(key_vals, @r#"
+        [
+            KeyVal {
+                key: "a",
+                value: "\n  b = c\n  d = e",
+            },
+        ]
+        "#);
+
+        let tree = parse_flat_to_tree(&key_vals);
+
+        insta::assert_debug_snapshot!(tree, @r#"
+        {
+            "a": [
+                Tree(
+                    {
+                        "b": [
+                            Leaf(
+                                "c",
+                            ),
+                        ],
+                        "d": [
+                            Leaf(
+                                "e",
+                            ),
+                        ],
+                    },
+                ),
+            ],
+        }
+        "#);
+    }
+
+    #[test]
+    fn test_parse_flat_to_tree_2() {
+        let data = data();
+        let key_vals = KeyVal::parse(&data).unwrap();
+        let tree = parse_flat_to_tree(&key_vals);
+
+        insta::assert_debug_snapshot!(tree, @r#"
+        {
+            "a": [
+                Leaf(
+                    "b",
+                ),
+            ],
+            "b": [
+                Tree(
+                    {
+                        "c": [
+                            Leaf(
+                                "d",
+                            ),
+                        ],
+                        "d": [
+                            Tree(
+                                {
+                                    "e": [
+                                        Leaf(
+                                            "f",
+                                        ),
+                                    ],
+                                    "f": [
+                                        Leaf(
+                                            "g",
+                                        ),
+                                    ],
+                                },
+                            ),
+                        ],
+                        "g": [
+                            Leaf(
+                                "h",
+                            ),
+                        ],
+                    },
+                ),
+            ],
+            "h": [
+                Leaf(
+                    "i",
+                ),
+            ],
+            "i": [
+                Leaf(
+                    "j",
+                ),
+            ],
+            "j": [
+                Leaf(
+                    "k\n  k = l",
+                ),
+            ],
+        }
+        "#);
     }
 }
