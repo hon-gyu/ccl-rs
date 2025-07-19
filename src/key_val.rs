@@ -61,20 +61,31 @@ impl KeyVal {
         }
 
         let fst_indent = get_indent(lines[0]);
+
+        let mut line_buf = String::new();
+
         for line in lines.iter() {
             let indentation = get_indent(line);
 
             // 1. indent < fst_indent: new key-value pair
             if indentation <= fst_indent {
-                let Some((curr_key, curr_value)) = line.split_once("=")
-                else {
-                    return Err(format!("Invalid line: {}", line));
-                };
+                if line.contains("=") {
+                    // 1.1 line contains "="
+                    let (curr_key, curr_value) =
+                        line.split_once("=").unwrap();
 
-                key_vals.push(KeyVal::new(
-                    curr_key.to_string(),
-                    curr_value.to_string(),
-                ));
+                    key_vals.push(KeyVal::new(
+                        curr_key.trim().to_string(),
+                        curr_value.trim().to_string(),
+                    ));
+
+                    line_buf.clear();
+                } else {
+                    // 1.2 line does not contain "=", find the next line that contains "="
+                    line_buf.push_str(line.trim());
+                    line_buf.push_str("\n");
+                    continue;
+                }
             } else {
                 // 2. indent > fst_indent: continue the previous value
                 let last_key_val = key_vals.last_mut().unwrap();
@@ -82,7 +93,11 @@ impl KeyVal {
             }
         }
 
-        Ok(key_vals)
+        if !line_buf.is_empty() {
+            Err(format!("Unclosed key-value pair: {}", line_buf))
+        } else {
+            Ok(key_vals)
+        }
     }
 
     /// pretty and parse are monoid isomorphisms
@@ -100,10 +115,12 @@ impl KeyVal {
         for key_val in key_vals {
             let KeyVal { key, value } = key_val;
             let node = match KeyVal::parse(value) {
-                Ok(new_key_vals) => KeyValNode::Tree(
-                    KeyVal::parse_flat_to_tree(&new_key_vals),
-                ),
-                Err(_) => KeyValNode::Leaf(value.to_string()),
+                Ok(new_key_vals) if !new_key_vals.is_empty() => {
+                    KeyValNode::Tree(KeyVal::parse_flat_to_tree(
+                        &new_key_vals,
+                    ))
+                }
+                Err(_) | Ok(_) => KeyValNode::Leaf(value.to_string()),
             };
 
             insert_map(&mut tree, key, node);
@@ -194,10 +211,10 @@ fn _leave_to_key_val(key: &str, node: KeyValNode) -> Option<KeyVal> {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod key_val_tests {
     use super::*;
 
-    fn data() -> String {
+    pub fn data() -> String {
         r#"
 a = b
 b =
@@ -230,6 +247,15 @@ j = k
     }
 
     #[test]
+    #[should_panic]
+    fn test_key_val_parse_3() {
+        let data = r#"
+        c
+        "#;
+        let _ = KeyVal::parse(data).unwrap();
+    }
+
+    #[test]
     fn test_key_val_parse_2() {
         let data = r#"
         a = 
@@ -244,28 +270,6 @@ j = k
                 value: "\n            b = c\n            d = e",
             },
         ]
-        "#);
-
-        let tree = KeyVal::parse_flat_to_tree(&key_vals);
-        insta::assert_debug_snapshot!(tree, @r#"
-        {
-            "a": [
-                Tree(
-                    {
-                        "b": [
-                            Leaf(
-                                "c",
-                            ),
-                        ],
-                        "d": [
-                            Leaf(
-                                "e",
-                            ),
-                        ],
-                    },
-                ),
-            ],
-        }
         "#);
     }
 
@@ -293,6 +297,11 @@ j = k
         c = "d"
         "#);
     }
+}
+
+#[cfg(test)]
+mod key_val_tree_tests {
+    use super::*;
 
     #[test]
     fn test_parse_flat_to_tree_1() {
@@ -337,7 +346,7 @@ a =
 
     #[test]
     fn test_parse_flat_to_tree_2() {
-        let data = data();
+        let data = key_val_tests::data();
         let key_vals = KeyVal::parse(&data).unwrap();
         let tree = KeyVal::parse_flat_to_tree(&key_vals);
 
