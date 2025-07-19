@@ -1,7 +1,7 @@
 /// Comprehensive stress test with complex CCL document
 /// Extracted from vendor/ccl/test/test_extra/stress.ml
 
-use ccl_rs::key_val::{KeyVal, KeyVals};
+use ccl_rs::key_val::KeyVal;
 
 #[cfg(test)]
 mod stress_tests {

@@ -1,7 +1,7 @@
 /// Test cases for nested value parsing
 /// Extracted from vendor/ccl/test/test_parser/test_nested.ml
 
-use ccl_rs::key_val::{KeyVal, KeyVals};
+use ccl_rs::key_val::KeyVal;
 
 #[cfg(test)]
 mod nested_value_tests {

@@ -1,7 +1,7 @@
 /// Test cases for empty inputs and error cases
 /// Extracted from vendor/ccl/test/test_parser/test_empty.ml and test_error.ml
 
-use ccl_rs::key_val::{KeyVal, KeyVals};
+use ccl_rs::key_val::KeyVal;
 
 #[cfg(test)]
 mod empty_and_error_tests {

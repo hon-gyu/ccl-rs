@@ -1,7 +1,7 @@
 /// Test cases for multiple key-value pair parsing
 /// Extracted from vendor/ccl/test/test_parser/test_multiple.ml
 
-use ccl_rs::key_val::{KeyVal, KeyVals};
+use ccl_rs::key_val::KeyVal;
 
 #[cfg(test)]
 mod multiple_key_value_tests {

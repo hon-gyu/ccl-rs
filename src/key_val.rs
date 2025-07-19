@@ -1,5 +1,4 @@
 use crate::monoid::Monoid;
-use crate::string_utils::*;
 use std::collections::BTreeMap;
 use std::fmt::Display;
 
@@ -76,7 +75,6 @@ impl KeyVal {
                     curr_key.to_string(),
                     curr_value.to_string(),
                 ));
-                continue;
             } else {
                 // 2. indent > fst_indent: continue the previous value
                 let last_key_val = key_vals.last_mut().unwrap();
