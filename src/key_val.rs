@@ -53,7 +53,7 @@ impl KeyVal {
         // Delete empty lines
         let lines = lines
             .into_iter()
-            .filter(|line| !line.is_empty())
+            .filter(|line| !line.trim().is_empty())
             .collect::<Vec<&str>>();
 
         let len = lines.len();
@@ -228,6 +228,46 @@ j = k
         h = "i"
         i = "j"
         j = "k\n  k = l"
+        "#);
+    }
+
+    #[test]
+    fn test_key_val_parse_2() {
+        let data = r#"
+        a = 
+            b = c
+            d = e
+        "#;
+        let key_vals = KeyVal::parse(data).unwrap();
+        insta::assert_debug_snapshot!(key_vals, @r#"
+        [
+            KeyVal {
+                key: "a",
+                value: "\n            b = c\n            d = e",
+            },
+        ]
+        "#);
+
+        let tree = parse_flat_to_tree(&key_vals);
+        insta::assert_debug_snapshot!(tree, @r#"
+        {
+            "a": [
+                Tree(
+                    {
+                        "b": [
+                            Leaf(
+                                "c",
+                            ),
+                        ],
+                        "d": [
+                            Leaf(
+                                "e",
+                            ),
+                        ],
+                    },
+                ),
+            ],
+        }
         "#);
     }
 
