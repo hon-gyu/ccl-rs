@@ -16,8 +16,8 @@ mod tests {
     #[case("\nkey = val\n")]
     #[case("key \n= val\n")]
     #[case("  \n key  \n=  val  \n")]
-    fn test_single_key_val(#[case] input: &str) {
-        let result = KeyVal::parse(input).unwrap();
+    fn test_single_key_val(#[case] config: &str) {
+        let result = KeyVal::parse(config).unwrap();
         let expected = vec![KeyVal {
             key: "key".to_string(),
             value: "val".to_string(),
@@ -25,221 +25,113 @@ mod tests {
         assert_eq!(result, expected);
     }
 
-    // #[test]
-    // fn test_basic_key_value() {
-    //     let cases = vec![
-    //         (
-    //             "key=val",
-    //             vec![KeyVal {
-    //                 key: "key".to_string(),
-    //                 value: "val".to_string(),
-    //             }],
-    //         ),
-    //         (
-    //             "key = val",
-    //             vec![KeyVal {
-    //                 key: "key".to_string(),
-    //                 value: "val".to_string(),
-    //             }],
-    //         ),
-    //         (
-    //             "  key = val",
-    //             vec![KeyVal {
-    //                 key: "key".to_string(),
-    //                 value: "val".to_string(),
-    //             }],
-    //         ),
-    //         (
-    //             "key = val  ",
-    //             vec![KeyVal {
-    //                 key: "key".to_string(),
-    //                 value: "val".to_string(),
-    //             }],
-    //         ),
-    //         (
-    //             "  key  =  val  ",
-    //             vec![KeyVal {
-    //                 key: "key".to_string(),
-    //                 value: "val".to_string(),
-    //             }],
-    //         ),
-    //         (
-    //             "\nkey = val\n",
-    //             vec![KeyVal {
-    //                 key: "key".to_string(),
-    //                 value: "val".to_string(),
-    //             }],
-    //         ),
-    //         (
-    //             "key \n= val\n",
-    //             vec![KeyVal {
-    //                 key: "key".to_string(),
-    //                 value: "val".to_string(),
-    //             }],
-    //         ),
-    //         (
-    //             "  \n key  \n=  val  \n",
-    //             vec![KeyVal {
-    //                 key: "key".to_string(),
-    //                 value: "val".to_string(),
-    //             }],
-    //         ),
-    //     ];
+    #[rstest]
+    #[case("key =")]
+    #[case("key =\n")]
+    #[case("key =  ")]
+    #[case("key =  \n")]
+    fn test_empty_value(#[case] config: &str) {
+        let result = KeyVal::parse(config).unwrap();
+        let expected = vec![KeyVal {
+            key: "key".to_string(),
+            value: "".to_string(),
+        }];
+        assert_eq!(result, expected);
+    }
 
-    //     for (input, expected) in cases {
-    //         dbg!(&input);
-    //         let result = KeyVal::parse(input).unwrap();
-    //         dbg!(&result);
-    //         assert_eq!(result, expected, "Failed for input: {:?}", input);
-    //     }
-    // }
+    #[rstest]
+    #[case("= val")]
+    #[case("  = val")]
+    #[case("\n  = val")]
+    fn test_empty_key(#[case] config: &str) {
+        let result = KeyVal::parse(config).unwrap();
+        let expected = vec![KeyVal {
+            key: "".to_string(),
+            value: "val".to_string(),
+        }];
+        assert_eq!(result, expected);
+    }
 
-    #[test]
-    fn test_empty_values() {
-        let cases = vec![
-            (
-                "key =",
-                vec![KeyVal {
-                    key: "key".to_string(),
-                    value: "".to_string(),
-                }],
-            ),
-            (
-                "key =\n",
-                vec![KeyVal {
-                    key: "key".to_string(),
-                    value: "".to_string(),
-                }],
-            ),
-            (
-                "key =  ",
-                vec![KeyVal {
-                    key: "key".to_string(),
-                    value: "".to_string(),
-                }],
-            ),
-            (
-                "key =  \n",
-                vec![KeyVal {
-                    key: "key".to_string(),
-                    value: "".to_string(),
-                }],
-            ),
-        ];
-
-        for (input, expected) in cases {
-            let result = KeyVal::parse(input).unwrap();
-            assert_eq!(result, expected, "Failed for input: {:?}", input);
-        }
+    #[rstest]
+    #[case("=")]
+    #[case("  =  ")]
+    #[case("\n  =  \n")]
+    fn test_empty_key_value(#[case] config: &str) {
+        let result = KeyVal::parse(config).unwrap();
+        let expected = vec![KeyVal {
+            key: "".to_string(),
+            value: "".to_string(),
+        }];
+        assert_eq!(result, expected);
     }
 
     #[test]
-    fn test_empty_keys() {
-        let cases = vec![
-            (
-                "= val",
-                vec![KeyVal {
-                    key: "".to_string(),
-                    value: "val".to_string(),
-                }],
-            ),
-            (
-                "  = val",
-                vec![KeyVal {
-                    key: "".to_string(),
-                    value: "val".to_string(),
-                }],
-            ),
-            (
-                "\n  = val",
-                vec![KeyVal {
-                    key: "".to_string(),
-                    value: "val".to_string(),
-                }],
-            ),
-        ];
-
-        for (input, expected) in cases {
-            let result = KeyVal::parse(input).unwrap();
-            assert_eq!(result, expected, "Failed for input: {:?}", input);
-        }
+    fn test_multiple_equality() {
+        let config = "a=b=c";
+        let result = KeyVal::parse(config).unwrap();
+        insta::assert_debug_snapshot!(result, @r#"
+        [
+            KeyVal {
+                key: "a",
+                value: "b=c",
+            },
+        ]
+        "#);
     }
 
     #[test]
-    fn test_empty_key_value() {
-        let cases = vec![
-            (
-                "=",
-                vec![KeyVal {
-                    key: "".to_string(),
-                    value: "".to_string(),
-                }],
-            ),
-            (
-                "  =  ",
-                vec![KeyVal {
-                    key: "".to_string(),
-                    value: "".to_string(),
-                }],
-            ),
-            (
-                "\n  =  \n",
-                vec![KeyVal {
-                    key: "".to_string(),
-                    value: "".to_string(),
-                }],
-            ),
-        ];
-
-        for (input, expected) in cases {
-            let result = KeyVal::parse(input).unwrap();
-            assert_eq!(result, expected, "Failed for input: {:?}", input);
-        }
+    fn test_multiple_equality_2() {
+        let config = "a = b = c";
+        let result = KeyVal::parse(config).unwrap();
+        insta::assert_debug_snapshot!(result, @r#"
+        [
+            KeyVal {
+                key: "a",
+                value: "b = c",
+            },
+        ]
+        "#);
     }
 
     #[test]
-    fn test_special_cases() {
-        let cases = vec![
-            (
-                "a=b=c",
-                vec![KeyVal {
-                    key: "a".to_string(),
-                    value: "b=c".to_string(),
-                }],
-            ),
-            (
-                "a = b = c",
-                vec![KeyVal {
-                    key: "a".to_string(),
-                    value: "b = c".to_string(),
-                }],
-            ),
-            (
-                " =  = ",
-                vec![KeyVal {
-                    key: "".to_string(),
-                    value: "=".to_string(),
-                }],
-            ),
-            (
-                "== Section 2 ==",
-                vec![KeyVal {
-                    key: "".to_string(),
-                    value: "= Section 2 ==".to_string(),
-                }],
-            ),
-            (
-                "/= this is a comment",
-                vec![KeyVal {
-                    key: "/".to_string(),
-                    value: "this is a comment".to_string(),
-                }],
-            ),
-        ];
+    fn test_empty_equality() {
+        let config = " = = ";
+        let result = KeyVal::parse(config).unwrap();
+        insta::assert_debug_snapshot!(result, @r#"
+        [
+            KeyVal {
+                key: "",
+                value: "=",
+            },
+        ]
+        "#);
+    }
 
-        for (input, expected) in cases {
-            let result = KeyVal::parse(input).unwrap();
-            assert_eq!(result, expected, "Failed for input: {:?}", input);
-        }
+    #[test]
+    fn test_section() {
+        let config = "== Section 2 ==";
+        let result = KeyVal::parse(config).unwrap();
+        insta::assert_debug_snapshot!(result, @r#"
+        [
+            KeyVal {
+                key: "",
+                value: "= Section 2 ==",
+            },
+        ]
+        "#);
+    }
+
+    #[test]
+    fn test_comment() {
+        let config = "/= this is a comment";
+        let result = KeyVal::parse(config).unwrap();
+        insta::assert_debug_snapshot!(result, @r#"
+        [
+            KeyVal {
+                key: "/",
+                value: "this is a comment",
+            },
+        ]
+        "#);
     }
 }
