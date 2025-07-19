@@ -3,77 +3,96 @@
 use ccl_rs::key_val::KeyVal;
 
 #[cfg(test)]
-mod single_key_value_tests {
+mod tests {
     use super::*;
+    use rstest::rstest;
 
-    #[test]
-    fn test_basic_key_value() {
-        let cases = vec![
-            (
-                "key=val",
-                vec![KeyVal {
-                    key: "key".to_string(),
-                    value: "val".to_string(),
-                }],
-            ),
-            (
-                "key = val",
-                vec![KeyVal {
-                    key: "key".to_string(),
-                    value: "val".to_string(),
-                }],
-            ),
-            (
-                "  key = val",
-                vec![KeyVal {
-                    key: "key".to_string(),
-                    value: "val".to_string(),
-                }],
-            ),
-            (
-                "key = val  ",
-                vec![KeyVal {
-                    key: "key".to_string(),
-                    value: "val".to_string(),
-                }],
-            ),
-            (
-                "  key  =  val  ",
-                vec![KeyVal {
-                    key: "key".to_string(),
-                    value: "val".to_string(),
-                }],
-            ),
-            (
-                "\nkey = val\n",
-                vec![KeyVal {
-                    key: "key".to_string(),
-                    value: "val".to_string(),
-                }],
-            ),
-            (
-                "key \n= val\n",
-                vec![KeyVal {
-                    key: "key".to_string(),
-                    value: "val".to_string(),
-                }],
-            ),
-            (
-                "  \n key  \n=  val  \n",
-                vec![KeyVal {
-                    key: "key".to_string(),
-                    value: "val".to_string(),
-                }],
-            ),
-        ];
-
-        for (input, expected) in cases {
-            dbg!(&input);
-            let result = KeyVal::parse(input).unwrap();
-            dbg!(&result);
-            assert_eq!(result, expected, "Failed for input: {:?}", input);
-        }
+    #[rstest]
+    #[case("key=val")]
+    #[case("key = val")]
+    #[case("  key = val")]
+    #[case("key = val  ")]
+    #[case("  key  =  val  ")]
+    #[case("\nkey = val\n")]
+    #[case("key \n= val\n")]
+    #[case("  \n key  \n=  val  \n")]
+    fn test_single_key_val(#[case] input: &str) {
+        let result = KeyVal::parse(input).unwrap();
+        let expected = vec![KeyVal {
+            key: "key".to_string(),
+            value: "val".to_string(),
+        }];
+        assert_eq!(result, expected);
     }
+
+    // #[test]
+    // fn test_basic_key_value() {
+    //     let cases = vec![
+    //         (
+    //             "key=val",
+    //             vec![KeyVal {
+    //                 key: "key".to_string(),
+    //                 value: "val".to_string(),
+    //             }],
+    //         ),
+    //         (
+    //             "key = val",
+    //             vec![KeyVal {
+    //                 key: "key".to_string(),
+    //                 value: "val".to_string(),
+    //             }],
+    //         ),
+    //         (
+    //             "  key = val",
+    //             vec![KeyVal {
+    //                 key: "key".to_string(),
+    //                 value: "val".to_string(),
+    //             }],
+    //         ),
+    //         (
+    //             "key = val  ",
+    //             vec![KeyVal {
+    //                 key: "key".to_string(),
+    //                 value: "val".to_string(),
+    //             }],
+    //         ),
+    //         (
+    //             "  key  =  val  ",
+    //             vec![KeyVal {
+    //                 key: "key".to_string(),
+    //                 value: "val".to_string(),
+    //             }],
+    //         ),
+    //         (
+    //             "\nkey = val\n",
+    //             vec![KeyVal {
+    //                 key: "key".to_string(),
+    //                 value: "val".to_string(),
+    //             }],
+    //         ),
+    //         (
+    //             "key \n= val\n",
+    //             vec![KeyVal {
+    //                 key: "key".to_string(),
+    //                 value: "val".to_string(),
+    //             }],
+    //         ),
+    //         (
+    //             "  \n key  \n=  val  \n",
+    //             vec![KeyVal {
+    //                 key: "key".to_string(),
+    //                 value: "val".to_string(),
+    //             }],
+    //         ),
+    //     ];
+
+    //     for (input, expected) in cases {
+    //         dbg!(&input);
+    //         let result = KeyVal::parse(input).unwrap();
+    //         dbg!(&result);
+    //         assert_eq!(result, expected, "Failed for input: {:?}", input);
+    //     }
+    // }
 
     #[test]
     fn test_empty_values() {

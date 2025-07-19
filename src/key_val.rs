@@ -55,14 +55,14 @@ impl KeyVal {
             .filter(|line| !line.trim().is_empty())
             .collect::<Vec<&str>>();
 
-        let len = lines.len();
-        if len == 0 {
+        // If there are no lines, return an empty list
+        if lines.len() == 0 {
             return Ok(key_vals);
         }
 
         let fst_indent = get_indent(lines[0]);
 
-        let mut line_buf = String::new();
+        let mut key_buf = String::new();
 
         for line in lines.iter() {
             let indentation = get_indent(line);
@@ -74,16 +74,18 @@ impl KeyVal {
                     let (curr_key, curr_value) =
                         line.split_once("=").unwrap();
 
+                    key_buf.push_str(curr_key);
+
                     key_vals.push(KeyVal::new(
-                        curr_key.trim().to_string(),
+                        key_buf.trim().to_string(),
                         curr_value.trim().to_string(),
                     ));
 
-                    line_buf.clear();
+                    key_buf.clear();
                 } else {
                     // 1.2 line does not contain "=", find the next line that contains "="
-                    line_buf.push_str(line.trim());
-                    line_buf.push_str("\n");
+                    key_buf.push_str(line);
+                    key_buf.push_str("\n");
                     continue;
                 }
             } else {
@@ -93,8 +95,8 @@ impl KeyVal {
             }
         }
 
-        if !line_buf.is_empty() {
-            Err(format!("Unclosed key-value pair: {}", line_buf))
+        if !key_buf.is_empty() {
+            Err(format!("Unclosed key-value pair: {}", key_buf))
         } else {
             Ok(key_vals)
         }
@@ -213,6 +215,20 @@ fn _leave_to_key_val(key: &str, node: KeyValNode) -> Option<KeyVal> {
 #[cfg(test)]
 pub mod key_val_tests {
     use super::*;
+
+    #[test]
+    fn test_key_val_parse_4() {
+        let input = "key \n= val\n";
+        let key_vals = KeyVal::parse(input).unwrap();
+        insta::assert_debug_snapshot!(key_vals, @r#"
+        [
+            KeyVal {
+                key: "key",
+                value: "val",
+            },
+        ]
+        "#);
+    }
 
     pub fn data() -> String {
         r#"
