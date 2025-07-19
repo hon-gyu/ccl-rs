@@ -1,4 +1,6 @@
-use crate::key_val::{KeyVal, KeyVals};
+use crate::key_val::{
+    KeyVal, KeyValNode, KeyValTree, KeyVals, parse_flat_to_tree,
+};
 use crate::monoid::Monoid;
 use std::collections::BTreeMap;
 
@@ -85,24 +87,27 @@ impl CCL {
     }
 }
 
-type EntryMap = KeyMap<Vec<Entry>>;
+fn parse_tree_to_fix(tree: KeyValTree) -> CCL {
+    let mut ccl = CCL::empty();
 
-#[derive(Clone)]
-enum Entry {
-    Leaf(String),
-    Nested(EntryMap),
-}
+    for (key, values) in tree {
+        let ccls = values
+            .iter()
+            .map(|value| match value {
+                KeyValNode::Leaf(leaf) => CCL::key_val(&key, leaf),
+                KeyValNode::Tree(tree) => {
+                    CCL::nested(&key, vec![parse_tree_to_fix(tree.clone())])
+                }
+            })
+            .collect::<Vec<CCL>>();
 
-fn parse_flat_to_tree(flat: KeyVals) -> EntryMap {
-    todo!()
-}
-
-fn parse_tree_to_fix(tree: EntryMap) -> CCL {
-    todo!()
+        ccl = ccl.merge(CCL::aggregate(ccls));
+    }
+    ccl
 }
 
 fn parse(key_vals: KeyVals) -> CCL {
-    parse_tree_to_fix(parse_flat_to_tree(key_vals))
+    parse_tree_to_fix(parse_flat_to_tree(&key_vals))
 }
 
 #[cfg(test)]
@@ -150,5 +155,48 @@ mod tests {
             ccl1.clone().merge(ccl2.clone()).merge(ccl3.clone()),
             ccl1.clone().merge(ccl2.clone().merge(ccl3.clone()))
         );
+    }
+
+    #[test]
+    fn test_parse_ccl() {
+        let data = r#"
+        1 = 2
+        a = 
+            b = c
+            d = e
+        "#;
+        let key_vals = KeyVal::parse(data).unwrap();
+        let ccl = parse(key_vals);
+        insta::assert_debug_snapshot!(ccl, @r#"
+        CCL(
+            {
+                "1": CCL(
+                    {
+                        "2": CCL(
+                            {},
+                        ),
+                    },
+                ),
+                "a": CCL(
+                    {
+                        "b": CCL(
+                            {
+                                "c": CCL(
+                                    {},
+                                ),
+                            },
+                        ),
+                        "d": CCL(
+                            {
+                                "e": CCL(
+                                    {},
+                                ),
+                            },
+                        ),
+                    },
+                ),
+            },
+        )
+        "#);
     }
 }
