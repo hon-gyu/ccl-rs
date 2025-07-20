@@ -3,7 +3,6 @@ use ccl_rs::key_val::KeyVal;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rstest::rstest;
 
     #[test]
     fn test_error() {
