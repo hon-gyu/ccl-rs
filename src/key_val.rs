@@ -44,6 +44,12 @@ impl KeyVal {
     ///     - the 'concatenation of two strings as the merge operation
     /// Note: to handle intentation, cat will trim the leading whitespace (or
     /// indentation?).
+    ///
+    /// 4 variables to consider when parsing a line:
+    /// 1. is line empty?
+    /// 2. is key_buf empty?
+    /// 3. indent > fst_indent?
+    /// 4. line contains "="?
     pub fn parse(data: &str) -> Result<KeyVals, String> {
         let mut key_vals = Vec::new();
 
