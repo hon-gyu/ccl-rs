@@ -9,6 +9,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 
 [dev-dependencies]
 insta = { version = "1.43.1", features = ["yaml"] }
+proptest = "1.7.0"
 rstest = "0.25.0"
 
 [profile.dev.package]
