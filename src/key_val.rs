@@ -157,45 +157,6 @@ pub enum KeyValNode {
     Tree(KeyValTree),
 }
 
-// fn pretty_tree(tree: &KeyValTree) -> String {
-//     let mut buf = String::new();
-
-//     let mut items = vec![];
-//     for (key, value) in tree {
-//         let to_push = pretty_item(key, value);
-//         items.push(to_push);
-//     }
-
-//     buf.push_str(&items.join("\n"));
-//     buf
-// }
-
-// fn pretty_item(key: &str, value: &Vec<KeyValNode>) -> String {
-//     let mut buf = String::new();
-
-//     buf.push_str(&format!(" {} =\n", key));
-
-//     let mut items = vec![];
-//     for node in value {
-//         match node {
-//             KeyValNode::Leaf(leaf) => {
-//                 let mut to_push = format!(" {} ", leaf);
-//                 to_push = indent(&to_push, 2);
-//                 items.push(to_push);
-//             }
-//             KeyValNode::Tree(tree) => {
-//                 let mut to_push = pretty_tree(tree);
-//                 to_push = add_box(&to_push);
-//                 to_push = indent(&to_push, 2);
-//                 items.push(to_push);
-//             }
-//         }
-//     }
-
-//     buf.push_str(&items.join("\n"));
-//     buf
-// }
-
 fn _leave_to_key_val(key: &str, node: KeyValNode) -> Option<KeyVal> {
     match node {
         KeyValNode::Leaf(value) => Some(KeyVal::new(key.to_string(), value)),
