@@ -63,31 +63,80 @@ impl KeyVal {
 
         let fst_indent = get_indent(lines[0]);
 
+        let mut key_buf = String::new();
+
         for line in lines.iter() {
             let indent = get_indent(line);
-            if indent <= fst_indent {
-                if !line.contains("=") {
-                    return Err(format!(
-                        "Indentation indicates a new key-value pair but line does not contain '=': {}",
-                        line
-                    ));
-                } else {
-                    // start a new key-value pair
-                    let (curr_key, curr_value) =
-                        line.split_once("=").expect("Never");
 
-                    key_vals.push(KeyVal::new(
-                        curr_key.trim().to_string(),
-                        curr_value.trim().to_string(),
-                    ));
+            if line.trim().is_empty() {
+                if !key_buf.is_empty() {
+                    key_buf.push_str(&format!("\n{}", line.trim_end()));
+                } else {
+                    let last_key_val = key_vals.last_mut().expect(
+                        "Never: empty line before any key-value pair",
+                    );
+                    last_key_val
+                        .value
+                        .push_str(&format!("\n{}", line.trim_end()));
                 }
             } else {
-                // continue the previous value
-                let last_key_val = key_vals.last_mut().unwrap();
-                last_key_val
-                    .value
-                    .push_str(&format!("\n{}", line.trim_end()));
+                if !key_buf.is_empty() {
+                    if !line.contains("=") {
+                        key_buf.push_str(&format!("\n{}", line.trim_end()));
+                    } else {
+                        let (curr_key, curr_value) =
+                            line.split_once("=").expect("Never");
+
+                        key_buf
+                            .push_str(&format!("\n{}", curr_key.trim_end()));
+                        key_vals.push(KeyVal::new(
+                            key_buf.trim().to_string(),
+                            curr_value.trim().to_string(),
+                        ));
+                        key_buf = String::new();
+                    }
+                } else {
+                    if indent > fst_indent {
+                        let last_key_val = key_vals.last_mut().expect(
+                            "Never: empty line before any key-value pair",
+                        );
+                        last_key_val
+                            .value
+                            .push_str(&format!("\n{}", line.trim_end()));
+                    } else {
+                        if !line.contains("=") {
+                            key_buf
+                                .push_str(&format!("\n{}", line.trim_end()));
+                        } else {
+                            let (curr_key, curr_value) =
+                                line.split_once("=").expect("Never");
+
+                            key_buf.push_str(&format!(
+                                "\n{}",
+                                curr_key.trim_end()
+                            ));
+                            key_vals.push(KeyVal::new(
+                                key_buf.trim().to_string(),
+                                curr_value.trim().to_string(),
+                            ));
+                            key_buf = String::new();
+                        }
+                    }
+                }
             }
+        }
+
+        // Check non-closed key-value pairs
+        if !key_buf.is_empty() {
+            return Err(format!(
+                "No value found for key: {}",
+                key_buf.trim()
+            ));
+        }
+
+        // Trim all values again to avoid trailing newlines
+        for key_val in key_vals.iter_mut() {
+            key_val.value = key_val.value.trim_end().to_string();
         }
 
         Ok(key_vals)
