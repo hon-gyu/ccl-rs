@@ -4,7 +4,7 @@
 use ccl_rs::key_val::KeyVal;
 
 #[cfg(test)]
-mod nested_value_tests {
+mod tests {
     use super::*;
 
     #[test]
