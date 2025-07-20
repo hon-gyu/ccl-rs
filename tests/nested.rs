@@ -9,40 +9,48 @@ mod nested_value_tests {
 
     #[test]
     fn test_single_line_nested_value() {
-        let input = "\nkey =\n  val\n";
+        let config = r#"
+key =
+  val
+"#;
         let expected = vec![
             KeyVal { key: "key".to_string(), value: "\n  val".to_string() },
         ];
 
-        let result = KeyVal::parse(input).unwrap();
+        let result = KeyVal::parse(config).unwrap();
         assert_eq!(result, expected);
     }
 
     #[test]
     fn test_multi_line_nested_value() {
-        let input = "\nkey =\n  line1\n  line2\n";
+        let config = "\nkey =\n  line1\n  line2\n";
         let expected = vec![
             KeyVal { key: "key".to_string(), value: "\n  line1\n  line2".to_string() },
         ];
 
-        let result = KeyVal::parse(input).unwrap();
+        let result = KeyVal::parse(config).unwrap();
         assert_eq!(result, expected);
     }
 
     #[test]
     fn test_multi_line_with_empty_line() {
-        let input = "\nkey =\n  line1\n\n  line2\n";
+        let config = r#"
+key =
+  line1
+
+  line2
+"#;
         let expected = vec![
             KeyVal { key: "key".to_string(), value: "\n  line1\n\n  line2".to_string() },
         ];
 
-        let result = KeyVal::parse(input).unwrap();
+        let result = KeyVal::parse(config).unwrap();
         assert_eq!(result, expected);
     }
 
     #[test]
     fn test_nested_key_value_pairs() {
-        let input = "\nkey =\n  field1 = value1\n  field2 = value2\n";
+        let config = "\nkey =\n  field1 = value1\n  field2 = value2\n";
         let expected = vec![
             KeyVal { 
                 key: "key".to_string(), 
@@ -50,13 +58,13 @@ mod nested_value_tests {
             },
         ];
 
-        let result = KeyVal::parse(input).unwrap();
+        let result = KeyVal::parse(config).unwrap();
         assert_eq!(result, expected);
     }
 
     #[test]
     fn test_deep_nested_key_value_pairs() {
-        let input = "\nkey =\n  field1 = value1\n  field2 =\n    subfield = x\n    another = y\n";
+        let config = "\nkey =\n  field1 = value1\n  field2 =\n    subfield = x\n    another = y\n";
         let expected = vec![
             KeyVal { 
                 key: "key".to_string(), 
@@ -64,7 +72,7 @@ mod nested_value_tests {
             },
         ];
 
-        let result = KeyVal::parse(input).unwrap();
+        let result = KeyVal::parse(config).unwrap();
         assert_eq!(result, expected);
     }
 }
