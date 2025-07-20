@@ -49,11 +49,12 @@ impl KeyVal {
 
         let lines = data.lines().collect::<Vec<&str>>();
 
-        // Delete empty lines
-        let lines = lines
-            .into_iter()
-            .filter(|line| !line.trim().is_empty())
-            .collect::<Vec<&str>>();
+        // Delete empty lines at the beginning
+        let mut i = 0;
+        while i < lines.len() && lines[i].trim().is_empty() {
+            i += 1;
+        }
+        let lines = &lines[i..];
 
         // If there are no lines, return an empty list
         if lines.len() == 0 {
@@ -62,44 +63,34 @@ impl KeyVal {
 
         let fst_indent = get_indent(lines[0]);
 
-        let mut key_buf = String::new();
-
         for line in lines.iter() {
-            let indentation = get_indent(line);
-
-            // 1. indent < fst_indent: new key-value pair
-            if indentation <= fst_indent {
-                if line.contains("=") {
-                    // 1.1 line contains "="
+            let indent = get_indent(line);
+            if indent <= fst_indent {
+                if !line.contains("=") {
+                    return Err(format!(
+                        "Indentation indicates a new key-value pair but line does not contain '=': {}",
+                        line
+                    ));
+                } else {
+                    // start a new key-value pair
                     let (curr_key, curr_value) =
-                        line.split_once("=").unwrap();
-
-                    key_buf.push_str(curr_key);
+                        line.split_once("=").expect("Never");
 
                     key_vals.push(KeyVal::new(
-                        key_buf.trim().to_string(),
+                        curr_key.trim().to_string(),
                         curr_value.trim().to_string(),
                     ));
-
-                    key_buf.clear();
-                } else {
-                    // 1.2 line does not contain "=", find the next line that contains "="
-                    key_buf.push_str(line);
-                    key_buf.push_str("\n");
-                    continue;
                 }
             } else {
-                // 2. indent > fst_indent: continue the previous value
+                // continue the previous value
                 let last_key_val = key_vals.last_mut().unwrap();
-                last_key_val.value.push_str(&format!("\n{}", line));
+                last_key_val
+                    .value
+                    .push_str(&format!("\n{}", line.trim_end()));
             }
         }
 
-        if !key_buf.is_empty() {
-            Err(format!("Unclosed key-value pair: {}", key_buf))
-        } else {
-            Ok(key_vals)
-        }
+        Ok(key_vals)
     }
 
     /// pretty and parse are monoid isomorphisms
