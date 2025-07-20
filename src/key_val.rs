@@ -71,61 +71,62 @@ impl KeyVal {
 
         let mut key_buf = String::new();
 
+        fn continue_key_buf(key_buf: &mut String, line: &str) {
+            key_buf.push_str(&format!("\n{}", line.trim_end()));
+        }
+
+        fn continue_last_value(key_vals: &mut KeyVals, line: &str) {
+            let last_key_val = key_vals
+                .last_mut()
+                .expect("Never: empty line before any key-value pair");
+            last_key_val
+                .value
+                .push_str(&format!("\n{}", line.trim_end()));
+        }
+
+        fn add_new_key_val(
+            key_buf: &mut String,
+            line: &str,
+            key_vals: &mut KeyVals,
+        ) {
+            let (curr_key, curr_value) =
+                line.split_once("=").expect("Never");
+
+            key_buf.push_str(&format!("\n{}", curr_key.trim_end()));
+            key_vals.push(KeyVal::new(
+                key_buf.trim().to_string(),
+                curr_value.trim().to_string(),
+            ));
+            *key_buf = String::new();
+        }
         for line in lines.iter() {
             let indent = get_indent(line);
 
             if line.trim().is_empty() {
                 if !key_buf.is_empty() {
-                    key_buf.push_str(&format!("\n{}", line.trim_end()));
+                    continue_key_buf(&mut key_buf, line);
                 } else {
-                    let last_key_val = key_vals.last_mut().expect(
-                        "Never: empty line before any key-value pair",
-                    );
-                    last_key_val
-                        .value
-                        .push_str(&format!("\n{}", line.trim_end()));
+                    continue_last_value(&mut key_vals, line);
                 }
             } else {
                 if !key_buf.is_empty() {
                     if !line.contains("=") {
-                        key_buf.push_str(&format!("\n{}", line.trim_end()));
+                        continue_key_buf(&mut key_buf, line);
                     } else {
-                        let (curr_key, curr_value) =
-                            line.split_once("=").expect("Never");
-
-                        key_buf
-                            .push_str(&format!("\n{}", curr_key.trim_end()));
-                        key_vals.push(KeyVal::new(
-                            key_buf.trim().to_string(),
-                            curr_value.trim().to_string(),
-                        ));
-                        key_buf = String::new();
+                        add_new_key_val(&mut key_buf, line, &mut key_vals);
                     }
                 } else {
                     if indent > fst_indent {
-                        let last_key_val = key_vals.last_mut().expect(
-                            "Never: empty line before any key-value pair",
-                        );
-                        last_key_val
-                            .value
-                            .push_str(&format!("\n{}", line.trim_end()));
+                        continue_last_value(&mut key_vals, line);
                     } else {
                         if !line.contains("=") {
-                            key_buf
-                                .push_str(&format!("\n{}", line.trim_end()));
+                            continue_key_buf(&mut key_buf, line);
                         } else {
-                            let (curr_key, curr_value) =
-                                line.split_once("=").expect("Never");
-
-                            key_buf.push_str(&format!(
-                                "\n{}",
-                                curr_key.trim_end()
-                            ));
-                            key_vals.push(KeyVal::new(
-                                key_buf.trim().to_string(),
-                                curr_value.trim().to_string(),
-                            ));
-                            key_buf = String::new();
+                            add_new_key_val(
+                                &mut key_buf,
+                                line,
+                                &mut key_vals,
+                            );
                         }
                     }
                 }
