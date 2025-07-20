@@ -78,7 +78,7 @@ key =
     }
 
     #[test]
-    fn test_extra_equation() {
+    fn test_extra_equal_sign() {
         let config = r#"
         ports =
             = 8000
@@ -145,16 +145,16 @@ key =
         let config = r#"
         ports =
             =
-            8000 =
-            8001 =
-            8002 =
+                8000 =
+                8001 =
+                8002 =
         "#;
         let result = KeyVal::parse(config).unwrap();
         insta::assert_debug_snapshot!(result, @r#"
         [
             KeyVal {
                 key: "ports",
-                value: "\n            =\n            8000 =\n            8001 =\n            8002 =",
+                value: "\n            =\n                8000 =\n                8001 =\n                8002 =",
             },
         ]
         "#);
@@ -166,29 +166,26 @@ key =
                     {
                         "": CCL(
                             {
-                                "": CCL(
-                                    {},
+                                "8000": CCL(
+                                    {
+                                        "": CCL(
+                                            {},
+                                        ),
+                                    },
                                 ),
-                            },
-                        ),
-                        "8000": CCL(
-                            {
-                                "": CCL(
-                                    {},
+                                "8001": CCL(
+                                    {
+                                        "": CCL(
+                                            {},
+                                        ),
+                                    },
                                 ),
-                            },
-                        ),
-                        "8001": CCL(
-                            {
-                                "": CCL(
-                                    {},
-                                ),
-                            },
-                        ),
-                        "8002": CCL(
-                            {
-                                "": CCL(
-                                    {},
+                                "8002": CCL(
+                                    {
+                                        "": CCL(
+                                            {},
+                                        ),
+                                    },
                                 ),
                             },
                         ),

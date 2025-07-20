@@ -238,7 +238,7 @@ pub mod key_val_tests {
         "#);
     }
 
-    pub fn data() -> String {
+    fn data() -> String {
         r#"
 a = b
 b =
@@ -369,8 +369,95 @@ a =
     }
 
     #[test]
+    fn test_parse_flat_to_tree_4() {
+        let data = r#"
+= d
+= e
+"#;
+        let key_vals = KeyVal::parse(data).unwrap();
+        insta::assert_debug_snapshot!(key_vals, @r#"
+        [
+            KeyVal {
+                key: "",
+                value: "d",
+            },
+            KeyVal {
+                key: "",
+                value: "e",
+            },
+        ]
+        "#);
+    }
+
+    #[test]
+    fn test_parse_flat_to_tree_3() {
+        let data = r#"
+abc =
+  = d
+  = e
+"#;
+        let key_vals = KeyVal::parse(data).unwrap();
+        insta::assert_debug_snapshot!(key_vals, @r#"
+        [
+            KeyVal {
+                key: "abc",
+                value: "\n  = d\n  = e",
+            },
+        ]
+        "#);
+        let intermediate_tree = KeyVal::parse_flat_to_tree(
+            &KeyVal::parse("\n  = d\n  = e").unwrap(),
+        );
+        insta::assert_debug_snapshot!(intermediate_tree, @r#"
+        {
+            "": [
+                Leaf(
+                    "d",
+                ),
+                Leaf(
+                    "e",
+                ),
+            ],
+        }
+        "#);
+
+        let tree = KeyVal::parse_flat_to_tree(&key_vals);
+        insta::assert_debug_snapshot!(tree, @r#"
+        {
+            "abc": [
+                Tree(
+                    {
+                        "": [
+                            Leaf(
+                                "d",
+                            ),
+                            Leaf(
+                                "e",
+                            ),
+                        ],
+                    },
+                ),
+            ],
+        }
+        "#);
+    }
+
+    #[test]
     fn test_parse_flat_to_tree_2() {
-        let data = key_val_tests::data();
+        let data = r#"
+a = b
+b =
+  c = d
+  d =
+    e = f
+    f = g
+  g = h
+h = i
+i = j
+j = k
+  k = l
+"#;
+
         let key_vals = KeyVal::parse(&data).unwrap();
         let tree = KeyVal::parse_flat_to_tree(&key_vals);
 

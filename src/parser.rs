@@ -198,5 +198,57 @@ mod tests {
             },
         )
         "#);
+
+        insta::assert_snapshot!(ccl.pretty(), @r"
+        1 =
+          2 =
+        a =
+          b =
+            c =
+          d =
+            e =
+        ");
+    }
+
+    #[test]
+    fn test_parse_ccl_2() {
+        let data = r#"
+        =
+            a = b
+            c = d
+        "#;
+        let key_vals = KeyVal::parse(data).unwrap();
+        let ccl = CCL::parse(key_vals);
+        insta::assert_debug_snapshot!(ccl, @r#"
+        CCL(
+            {
+                "": CCL(
+                    {
+                        "a": CCL(
+                            {
+                                "b": CCL(
+                                    {},
+                                ),
+                            },
+                        ),
+                        "c": CCL(
+                            {
+                                "d": CCL(
+                                    {},
+                                ),
+                            },
+                        ),
+                    },
+                ),
+            },
+        )
+        "#);
+        insta::assert_snapshot!(ccl.pretty(), @r"
+        =
+         a =
+           b =
+         c =
+           d =
+        ");
     }
 }
