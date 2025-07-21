@@ -1,4 +1,4 @@
-use ccl_rs::key_val::{KeyVal, KeyValTree};
+use ccl_rs::key_val::KeyVal;
 use ccl_rs::parser::CCL;
 
 #[cfg(test)]
