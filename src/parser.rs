@@ -159,13 +159,16 @@ mod tests {
 
     #[test]
     fn test_parse_ccl() {
+        // 1. raw text
         let data = r#"
         1 = 2
         a = 
             b = c
             d = e
         "#;
+        // 2. key-value list
         let key_vals = KeyVal::parse(data).unwrap();
+        // 3, 4. key-value tree, CCL
         let ccl = CCL::parse(key_vals);
         insta::assert_debug_snapshot!(ccl, @r#"
         CCL(
@@ -198,7 +201,7 @@ mod tests {
             },
         )
         "#);
-
+        // 5. CCL-pretty
         insta::assert_snapshot!(ccl.pretty(), @r"
         1 =
           2 =
@@ -212,13 +215,38 @@ mod tests {
 
     #[test]
     fn test_parse_ccl_2() {
+        // 1. raw text
         let data = r#"
         =
             a = b
             c = d
         "#;
+        // 2. key-value list
         let key_vals = KeyVal::parse(data).unwrap();
-        let ccl = CCL::parse(key_vals);
+        // 3. key-value tree,
+        let key_vals_tree = KeyVal::parse_flat_to_tree(&key_vals);
+        insta::assert_debug_snapshot!(key_vals_tree, @r#"
+        {
+            "": [
+                Tree(
+                    {
+                        "a": [
+                            Leaf(
+                                "b",
+                            ),
+                        ],
+                        "c": [
+                            Leaf(
+                                "d",
+                            ),
+                        ],
+                    },
+                ),
+            ],
+        }
+        "#);
+        // 4. CCL
+        let ccl = CCL::parse_tree_to_fix(key_vals_tree);
         insta::assert_debug_snapshot!(ccl, @r#"
         CCL(
             {
@@ -243,12 +271,155 @@ mod tests {
             },
         )
         "#);
+        // 5. CCL-pretty
         insta::assert_snapshot!(ccl.pretty(), @r"
         =
          a =
            b =
          c =
            d =
+        ");
+    }
+
+    #[test]
+    fn test_parse_ccl_3() {
+        // 1. raw text
+        let data = r#"
+        =
+            a =
+            c =
+        "#;
+        // 2. key-value list
+        let key_vals = KeyVal::parse(data).unwrap();
+        // 3. key-value tree,
+        let key_vals_tree = KeyVal::parse_flat_to_tree(&key_vals);
+        insta::assert_debug_snapshot!(key_vals_tree, @r#"
+        {
+            "": [
+                Tree(
+                    {
+                        "a": [
+                            Leaf(
+                                "",
+                            ),
+                        ],
+                        "c": [
+                            Leaf(
+                                "",
+                            ),
+                        ],
+                    },
+                ),
+            ],
+        }
+        "#);
+        // 4. CCL
+        let ccl = CCL::parse_tree_to_fix(key_vals_tree);
+        insta::assert_debug_snapshot!(ccl, @r#"
+        CCL(
+            {
+                "": CCL(
+                    {
+                        "a": CCL(
+                            {
+                                "": CCL(
+                                    {},
+                                ),
+                            },
+                        ),
+                        "c": CCL(
+                            {
+                                "": CCL(
+                                    {},
+                                ),
+                            },
+                        ),
+                    },
+                ),
+            },
+        )
+        "#);
+        // 5. CCL-pretty
+        insta::assert_snapshot!(ccl.pretty(), @r"
+        =
+         a =
+            =
+         c =
+            =
+        ");
+    }
+
+    #[test]
+    fn test_awdf() {
+        // let ccl = CCL({"": CCL({"": CCL({})})});
+        let ccl = CCL::nested("", vec![CCL::nested("", vec![CCL::empty()])]);
+        insta::assert_debug_snapshot!(ccl, @r#"
+        CCL(
+            {
+                "": CCL(
+                    {
+                        "": CCL(
+                            {},
+                        ),
+                    },
+                ),
+            },
+        )
+        "#);
+        insta::assert_snapshot!(&ccl.pretty(), @r"
+        =
+          =
+        ");
+
+        let key_vals_2 = KeyVal::parse(&ccl.pretty()).unwrap();
+        insta::assert_debug_snapshot!(key_vals_2, @r#"
+        [
+            KeyVal {
+                key: "",
+                value: "\n   =",
+            },
+        ]
+        "#);
+
+        let key_vals_tree_2 = KeyVal::parse_flat_to_tree(&key_vals_2);
+        insta::assert_debug_snapshot!(key_vals_tree_2, @r#"
+        {
+            "": [
+                Tree(
+                    {
+                        "": [
+                            Leaf(
+                                "",
+                            ),
+                        ],
+                    },
+                ),
+            ],
+        }
+        "#);
+
+        let ccl2 = CCL::parse_tree_to_fix(key_vals_tree_2);
+        insta::assert_debug_snapshot!(ccl2, @r#"
+        CCL(
+            {
+                "": CCL(
+                    {
+                        "": CCL(
+                            {
+                                "": CCL(
+                                    {},
+                                ),
+                            },
+                        ),
+                    },
+                ),
+            },
+        )
+        "#);
+        insta::assert_snapshot!(ccl2.pretty(), @r"
+        =
+          =
+            =
         ");
     }
 }
