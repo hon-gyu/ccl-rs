@@ -1,5 +1,4 @@
 use ccl_rs::key_val::{KeyVal, KeyVals};
-use ccl_rs::monoid::Monoid;
 use ccl_rs::parser::CCL;
 use proptest::prelude::*;
 
