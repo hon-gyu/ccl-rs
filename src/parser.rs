@@ -93,7 +93,13 @@ impl CCL {
             let ccls = values
                 .iter()
                 .map(|value| match value {
-                    KeyValNode::Leaf(leaf) => CCL::key_val(&key, leaf),
+                    KeyValNode::Leaf(leaf) => {
+                        if leaf.is_empty() {
+                            CCL::key(&key)
+                        } else {
+                            CCL::key_val(&key, leaf)
+                        }
+                    }
                     KeyValNode::Tree(tree) => CCL::nested(
                         &key,
                         vec![CCL::parse_tree_to_fix(tree.clone())],
@@ -321,18 +327,10 @@ mod tests {
                 "": CCL(
                     {
                         "a": CCL(
-                            {
-                                "": CCL(
-                                    {},
-                                ),
-                            },
+                            {},
                         ),
                         "c": CCL(
-                            {
-                                "": CCL(
-                                    {},
-                                ),
-                            },
+                            {},
                         ),
                     },
                 ),
@@ -343,15 +341,12 @@ mod tests {
         insta::assert_snapshot!(ccl.pretty(), @r"
         =
          a =
-            =
          c =
-            =
         ");
     }
 
     #[test]
-    fn test_awdf() {
-        // let ccl = CCL({"": CCL({"": CCL({})})});
+    fn test_from_prop_test_roundtrip_failure() {
         let ccl = CCL::nested("", vec![CCL::nested("", vec![CCL::empty()])]);
         insta::assert_debug_snapshot!(ccl, @r#"
         CCL(
@@ -405,11 +400,7 @@ mod tests {
                 "": CCL(
                     {
                         "": CCL(
-                            {
-                                "": CCL(
-                                    {},
-                                ),
-                            },
+                            {},
                         ),
                     },
                 ),
@@ -419,7 +410,6 @@ mod tests {
         insta::assert_snapshot!(ccl2.pretty(), @r"
         =
           =
-            =
         ");
     }
 }
