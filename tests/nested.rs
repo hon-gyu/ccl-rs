@@ -79,6 +79,7 @@ key =
 
     #[test]
     fn test_extra_equal_sign() {
+        // Config 1
         let config = r#"
         ports =
             = 8000
@@ -140,8 +141,16 @@ key =
             },
         )
         "#);
+        insta::assert_snapshot!(ccl.pretty(), @r"
+        ports =
+           =
+            8000 =
+            8001 =
+            8002 =
+        ");
 
 
+        // Config 2
         let config = r#"
         ports =
             =
@@ -182,7 +191,15 @@ key =
             },
         )
         "#);
+        insta::assert_snapshot!(ccl.pretty(), @r"
+        ports =
+           =
+            8000 =
+            8001 =
+            8002 =
+        ");
 
+        // Config 3: unintuitive nesting
         let config = r#"
         ports
             = 8000
@@ -198,6 +215,35 @@ key =
             },
         ]
         "#);
+        let ccl = CCL::parse(result);
+        insta::assert_debug_snapshot!(ccl, @r#"
+        CCL(
+            {
+                "ports": CCL(
+                    {
+                        "8000": CCL(
+                            {
+                                "8001": CCL(
+                                    {
+                                        "8002": CCL(
+                                            {},
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                    },
+                ),
+            },
+        )
+        "#);
+        insta::assert_snapshot!(ccl.pretty(), @r"
+        ports =
+          8000 =
+            8001 =
+              8002 =
+        ");
+
     }
 
 }
