@@ -18,8 +18,8 @@ struct Args {
     file: Vec<String>,
 
     /// Query key (empty for print all)
-    #[arg(short, long)]
-    query: Option<String>,
+    #[arg(short, long, num_args = 1..)]
+    query: Vec<String>,
 }
 
 fn main() {
@@ -35,13 +35,20 @@ fn main() {
     let ccl = load_files(file);
 
     // Execute query
-    match execute_query(args.query.as_deref(), &ccl) {
-        Ok(result) => {
-            print!("{}", result.pretty());
-        }
-        Err(e) => {
-            eprintln!("Query failed: {}", e);
-            process::exit(1);
+    if args.query.is_empty() {
+        print!("{}", ccl.pretty());
+    } else {
+        for query in args.query {
+            match execute_query(&query, &ccl) {
+                Ok(result) => {
+                    print!("{}", result.pretty());
+                    println!();
+                }
+                Err(e) => {
+                    eprintln!("Query failed: {}", e);
+                    process::exit(1);
+                }
+            }
         }
     }
 }
@@ -79,18 +86,13 @@ fn load_files(files: Vec<String>) -> CCL {
     CCL::aggregate(ccls)
 }
 
-fn execute_query(query_key: Option<&str>, ccl: &CCL) -> Result<CCL, String> {
-    if let None = query_key {
-        return Ok(ccl.clone());
-    } else {
-        let nested_keys =
-            query_key.unwrap().split('=').collect::<Vec<&str>>();
-        let mut ccl = ccl.clone();
-        for key in nested_keys {
-            ccl = query_single_key(key, &ccl)?;
-        }
-        Ok(ccl)
+fn execute_query(query_key: &str, ccl: &CCL) -> Result<CCL, String> {
+    let nested_keys = query_key.split('=').collect::<Vec<&str>>();
+    let mut ccl = ccl.clone();
+    for key in nested_keys {
+        ccl = query_single_key(key, &ccl)?;
     }
+    Ok(ccl)
 }
 
 fn query_single_key(key: &str, ccl: &CCL) -> Result<CCL, String> {
