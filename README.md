@@ -1,10 +1,10 @@
 # ccl-rs
 
-A Rust port of [Categorical Configuration Language](https://github.com/chshersh/ccl) (OCaml).
+A Rust implementation of [Categorical Configuration Language](https://github.com/chshersh/ccl) (OCaml).
 
 ## Performance
 
-This is a toy comparison on my machine.
+Benchmark comparison with the original OCaml implementation:
 
 ### Small file (61 bytes)
 - Rust: ~3-4ms
