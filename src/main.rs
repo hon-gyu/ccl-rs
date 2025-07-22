@@ -80,15 +80,16 @@ fn load_files(files: Vec<String>) -> CCL {
 }
 
 fn execute_query(query_key: Option<&str>, ccl: &CCL) -> Result<CCL, String> {
-    match query_key {
-        None => {
-            // No query: return all data
-            Ok(ccl.clone())
+    if let None = query_key {
+        return Ok(ccl.clone());
+    } else {
+        let nested_keys =
+            query_key.unwrap().split('=').collect::<Vec<&str>>();
+        let mut ccl = ccl.clone();
+        for key in nested_keys {
+            ccl = query_single_key(key, &ccl)?;
         }
-        Some(key) => {
-            // Single key query
-            query_single_key(key, ccl)
-        }
+        Ok(ccl)
     }
 }
 
