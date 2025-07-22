@@ -1,6 +1,6 @@
 use ccl_rs::key_val::KeyVal;
-use ccl_rs::parser::CCL;
 use ccl_rs::monoid::Monoid;
+use ccl_rs::parser::CCL;
 use clap::Parser;
 use std::fs;
 use std::io::{self, Read};
@@ -8,12 +8,15 @@ use std::process;
 
 #[derive(Parser)]
 #[command(name = "cclq")]
-#[command(about = "Query values in CCL files")]
-#[command(long_about = "Query values in CCL files. Queries are single keys.")]
+#[command(about = "Merge CCL files and query")]
+#[command(
+    long_about = "Merge CCL files and query. Queries are single keys."
+)]
 struct Args {
     /// Input files to query (default: read from stdin)
-    files: Vec<String>,
-    
+    #[arg(short, long, num_args = 1..)]
+    file: Vec<String>,
+
     /// Query key (empty for print all)
     #[arg(short, long)]
     query: Option<String>,
@@ -21,16 +24,16 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    
-    let files = if args.files.is_empty() {
+
+    let file = if args.file.is_empty() {
         vec!["/dev/stdin".to_string()]
     } else {
-        args.files
+        args.file
     };
-    
+
     // Load and merge all CCL files
-    let ccl = load_files(files);
-    
+    let ccl = load_files(file);
+
     // Execute query
     match execute_query(args.query.as_deref(), &ccl) {
         Ok(result) => {
@@ -45,7 +48,7 @@ fn main() {
 
 fn load_files(files: Vec<String>) -> CCL {
     let mut ccls = Vec::new();
-    
+
     for file_path in files {
         let content = if file_path == "/dev/stdin" {
             let mut buffer = String::new();
@@ -60,7 +63,7 @@ fn load_files(files: Vec<String>) -> CCL {
                 process::exit(1);
             })
         };
-        
+
         match KeyVal::parse(&content) {
             Ok(key_vals) => {
                 let ccl = CCL::parse(key_vals);
@@ -72,7 +75,7 @@ fn load_files(files: Vec<String>) -> CCL {
             }
         }
     }
-    
+
     CCL::aggregate(ccls)
 }
 
@@ -90,8 +93,9 @@ fn execute_query(query_key: Option<&str>, ccl: &CCL) -> Result<CCL, String> {
 }
 
 fn query_single_key(key: &str, ccl: &CCL) -> Result<CCL, String> {
-    // Need to access the internal map of CCL to query a specific key
-    // This would require adding a method to CCL or making the field public
-    // For now, return an error indicating this needs to be implemented
-    Err("Single key querying not yet implemented - need to add query method to CCL".to_string())
+    let CCL(map) = ccl;
+    match map.get(key) {
+        Some(ccl) => Ok(ccl.clone()),
+        None => Err(format!("Key '{}' not found", key)),
+    }
 }

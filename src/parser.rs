@@ -7,7 +7,7 @@ type KeyMap<T> = BTreeMap<String, T>;
 /// The only way to stop the recursion is to bind a key to an empty map.
 /// And therefore, final level is values mapped to empty maps.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CCL(KeyMap<CCL>);
+pub struct CCL(pub KeyMap<CCL>);
 
 impl Monoid for CCL {
     fn empty() -> Self {
