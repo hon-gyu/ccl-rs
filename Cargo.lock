@@ -125,7 +125,6 @@ dependencies = [
  "predicates",
  "proptest",
  "rstest",
- "serde",
 ]
 
 [[package]]
